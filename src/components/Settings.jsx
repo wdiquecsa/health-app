@@ -1,6 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { saveSettings } from '../lib/settings.js';
 import { saveCoachRules, updateJson } from '../lib/github.js';
+
+// Textarea that keeps its normal height as a minimum and grows with the
+// content, so long rule lists never need inner scrolling.
+function AutoTextarea({ value, onChange }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight + 2}px`;
+  }, [value]);
+  return (
+    <textarea ref={ref} value={value} onChange={onChange} style={{ overflow: 'hidden', resize: 'none' }} />
+  );
+}
 
 const DEFAULT_RULES = {
   persona: 'Supportive, practical nutrition coach. Concise and concrete: real foods with amounts, not generic advice.',
@@ -220,16 +235,16 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
           </p>
 
           <label>Persona: who your coach is and how it talks</label>
-          <textarea value={rules.persona} onChange={setRule('persona')} />
+          <AutoTextarea value={rules.persona} onChange={setRule('persona')} />
 
           <label>Focus: priorities applied to everything (logging and coaching)</label>
-          <textarea value={rules.focus} onChange={setRule('focus')} />
+          <AutoTextarea value={rules.focus} onChange={setRule('focus')} />
 
           <label>Logging rules: how meals get analysed and recorded</label>
-          <textarea value={rules.logging_rules} onChange={setRule('logging_rules')} />
+          <AutoTextarea value={rules.logging_rules} onChange={setRule('logging_rules')} />
 
           <label>Coaching rules: how advice and answers are given</label>
-          <textarea value={rules.coaching_rules} onChange={setRule('coaching_rules')} />
+          <AutoTextarea value={rules.coaching_rules} onChange={setRule('coaching_rules')} />
 
           <button className="primary" disabled={rulesBusy} onClick={saveRules}>
             {rulesBusy ? 'Saving…' : 'Save coach rules'}

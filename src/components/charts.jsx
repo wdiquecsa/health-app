@@ -123,14 +123,26 @@ function TrendChart({ pts, unit, colorVar, band, height, ariaLabel }) {
             {last.v} {unit}
           </text>
         )}
-        {hover && (
-          <g>
-            <line x1={x(hover.t)} x2={x(hover.t)} y1={pad.top} y2={H - pad.bottom} stroke="var(--baseline)" strokeWidth="1" strokeDasharray="3 3" />
-            <text x={Math.min(Math.max(x(hover.t), 60), W - 80)} y={pad.top + 2} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--ink)">
-              {hover.v} {unit} · {hover.date}
-            </text>
-          </g>
-        )}
+        {hover && (() => {
+          // Anchor the tooltip away from whichever edge it is near, so text
+          // for the first/last points never clips outside the chart
+          const hx = x(hover.t);
+          const nearLeft = hx < 120;
+          const nearRight = hx > W - 120;
+          return (
+            <g>
+              <line x1={hx} x2={hx} y1={pad.top} y2={H - pad.bottom} stroke="var(--baseline)" strokeWidth="1" strokeDasharray="3 3" />
+              <text
+                x={nearLeft ? pad.left + 4 : nearRight ? W - pad.right : hx}
+                y={pad.top + 2}
+                textAnchor={nearLeft ? 'start' : nearRight ? 'end' : 'middle'}
+                fontSize="12" fontWeight="600" fill="var(--ink)"
+              >
+                {hover.v} {unit} · {hover.date}
+              </text>
+            </g>
+          );
+        })()}
         <line x1={pad.left} x2={W - pad.right} y1={H - pad.bottom} y2={H - pad.bottom} stroke="var(--baseline)" strokeWidth="1" />
         <text x={pad.left} y={H - 8} fontSize="11" fill="var(--muted)">{sorted[0].date}</text>
         <text x={W - pad.right} y={H - 8} fontSize="11" fill="var(--muted)" textAnchor="end">{last.date}</text>
