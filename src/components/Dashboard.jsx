@@ -1,4 +1,4 @@
-import { MacroBar, WeightChart } from './charts.jsx';
+import { MacroBar, WeightChart, BodyFatChart, hasBodyFat } from './charts.jsx';
 import { dayTotals, todayStr, round1 } from '../lib/nutrition.js';
 
 export default function Dashboard({ data }) {
@@ -45,6 +45,12 @@ export default function Dashboard({ data }) {
       <div className="card">
         <h2>Weight</h2>
         <WeightChart entries={weightLog} band={band} />
+        {hasBodyFat(weightLog) && (
+          <>
+            <h2 style={{ marginTop: 16 }}>Body fat</h2>
+            <BodyFatChart entries={weightLog} />
+          </>
+        )}
       </div>
 
       <div className="card">
