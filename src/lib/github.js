@@ -69,13 +69,20 @@ export async function appendToLog(settings, filePath, entry, message) {
   return log;
 }
 
+// Overwrite the coach rules file, re-fetching the latest sha first.
+export async function saveCoachRules(settings, rules) {
+  const { sha } = await getJson(settings, 'data/coach_rules.json');
+  await putJson(settings, 'data/coach_rules.json', rules, sha, 'Update coach rules');
+}
+
 export async function loadAll(settings) {
-  const [foods, targets, goals, mealLog, weightLog] = await Promise.all([
+  const [foods, targets, goals, mealLog, weightLog, coachRules] = await Promise.all([
     getJson(settings, 'data/foods.json'),
     getJson(settings, 'data/targets.json'),
     getJson(settings, 'data/goals.json'),
     getJson(settings, 'data/meal_log.json'),
     getJson(settings, 'data/weight_log.json'),
+    getJson(settings, 'data/coach_rules.json'),
   ]);
   return {
     foods: foods.data || [],
@@ -83,5 +90,6 @@ export async function loadAll(settings) {
     goals: goals.data || null,
     mealLog: mealLog.data || [],
     weightLog: weightLog.data || [],
+    coachRules: coachRules.data || null,
   };
 }

@@ -13,7 +13,7 @@ export default function LogMeal({ settings, data, onLogged }) {
   async function handleParse() {
     setBusy(true); setError(''); setSavedMsg('');
     try {
-      setParsed(await parseMeal(settings, data.foods, text));
+      setParsed(await parseMeal(settings, data.foods, text, data.coachRules));
     } catch (e) {
       setError(String(e.message || e));
     } finally {

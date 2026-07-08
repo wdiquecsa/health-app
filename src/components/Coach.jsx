@@ -22,6 +22,7 @@ export default function Coach({ settings, data }) {
         recentMeals: data.mealLog.slice(-10),
         recentWeights: data.weightLog.slice(-10),
         foods: data.foods,
+        coachRules: data.coachRules,
       };
       const answer = await askCoach(settings, ctx, question);
       setMessages((m) => [...m, { role: 'assistant', text: answer }]);

@@ -51,6 +51,7 @@ data history is versioned, auditable, and recoverable.
    | `goals.json` | Long-term goal, target weight range, milestones (drives the dashboard's goal band). |
    | `profile.json` | Who you are + activity routine (context for the AI coach). |
    | `settings.json` | Logging/data rules. |
+   | `coach_rules.json` | **Your AI's rulebook** — persona, priorities, logging and coaching rules injected into every AI call. Editable inside the app (Setup tab → Coach rules). |
    | `meal_templates.json` | Reusable meal structures (optional). |
    | `recipes.json` | Recipes as ingredient lists referencing food ids (optional). |
    | `meal_log.json` | Your meal log — start it as `[]`; the sample shows the entry shape the app writes. |

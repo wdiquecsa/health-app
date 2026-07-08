@@ -48,7 +48,10 @@ export default function App() {
 
       {loadError && <p className="error">Could not load data: {loadError}</p>}
 
-      {tab === 'settings' && <Settings settings={settings} onSaved={onSettingsSaved} />}
+      {tab === 'settings' && (
+        <Settings settings={settings} onSaved={onSettingsSaved} data={data}
+          onRulesSaved={(coachRules) => setData({ ...data, coachRules })} />
+      )}
 
       {!isConfigured(settings) && tab !== 'settings' && (
         <div className="card center">
