@@ -1,6 +1,12 @@
 import { useState } from 'react';
-import { MacroBar, WeightChart, BodyFatChart, hasBodyFat, RangeToggle } from './charts.jsx';
-import { dayTotals, todayStr, round1, paceStats, aggregateWeighIns } from '../lib/nutrition.js';
+import {
+  MacroBar, WeightChart, BodyFatChart, WaistChart, MacroBarsChart,
+  hasBodyFat, hasWaist, RangeToggle,
+} from './charts.jsx';
+import {
+  dayTotals, todayStr, round1, paceStats, aggregateWeighIns,
+  adherenceStats, macroHistory,
+} from '../lib/nutrition.js';
 import { updateJson } from '../lib/github.js';
 
 function DayNav({ dayOffset, setDayOffset }) {
@@ -39,6 +45,8 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
   const lost = latestWeight && startWeight ? round1(startWeight.weight_kg - latestWeight.weight_kg) : null;
   const band = goals?.long_term?.target_weight_kg || null;
   const pace = paceStats(weightLog, goals);
+  const adherence = adherenceStats(mealLog, targets);
+  const history = macroHistory(mealLog, 14);
 
   async function removeMeal(e) {
     const kcal = Math.round(e.totals?.kcal || 0);
@@ -126,6 +134,45 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
       </div>
 
       <div className="card">
+        <h2>Consistency</h2>
+        <div className="adherence-row">
+          <div>
+            <div className="big-num">{adherence.streak}</div>
+            <div className="sub-label">day logging streak</div>
+          </div>
+          <div>
+            <div className="big-num">{adherence.proteinHit}/{adherence.logged}</div>
+            <div className="sub-label">protein target hit</div>
+          </div>
+          <div>
+            <div className="big-num">{adherence.kcalHit}/{adherence.logged}</div>
+            <div className="sub-label">calories on target</div>
+          </div>
+        </div>
+        <p className="hint" style={{ marginTop: 10 }}>
+          Protein and calories judged over logged days in the last {adherence.n} (today excluded).
+        </p>
+      </div>
+
+      <div className="card">
+        <h2>Last 14 days</h2>
+        {t.kcal?.value != null && (
+          <>
+            <div className="sub-label" style={{ marginBottom: 4 }}>Calories per day</div>
+            <MacroBarsChart data={history} field="kcal" unit="kcal"
+              target={{ value: t.kcal.value }} ariaLabel="Daily calories, last 14 days" />
+          </>
+        )}
+        {t.protein_g?.min != null && (
+          <>
+            <div className="sub-label" style={{ margin: '12px 0 4px' }}>Protein per day (g)</div>
+            <MacroBarsChart data={history} field="protein_g" unit="g protein"
+              target={{ min: t.protein_g.min, max: t.protein_g.max }} ariaLabel="Daily protein, last 14 days" />
+          </>
+        )}
+      </div>
+
+      <div className="card">
         <div className="card-head">
           <h2>Weight</h2>
           <RangeToggle mode={chartMode} setMode={setChartMode} />
@@ -135,6 +182,12 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
           <>
             <h2 style={{ marginTop: 16 }}>Body fat</h2>
             <BodyFatChart entries={chartEntries} />
+          </>
+        )}
+        {hasWaist(chartEntries) && (
+          <>
+            <h2 style={{ marginTop: 16 }}>Waist</h2>
+            <WaistChart entries={chartEntries} />
           </>
         )}
       </div>

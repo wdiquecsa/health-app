@@ -11,7 +11,7 @@ import Settings from './components/Settings.jsx';
 const TABS = [
   { id: 'today', label: 'Dash', icon: '📊' },
   { id: 'log', label: 'Log', icon: '🍽️' },
-  { id: 'weight', label: 'Weight', icon: '⚖️' },
+  { id: 'weight', label: 'Body', icon: '⚖️' },
   { id: 'coach', label: 'Coach', icon: '💬' },
   { id: 'foods', label: 'Foods', icon: '🥗' },
   { id: 'settings', label: 'Setup', icon: '⚙️' },

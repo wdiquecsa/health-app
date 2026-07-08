@@ -40,10 +40,11 @@ export function aggregateWeighIns(entries, mode) {
   const buckets = new Map();
   for (const e of entries) {
     const key = bucketKey(e.date);
-    if (!buckets.has(key)) buckets.set(key, { weights: [], fats: [] });
+    if (!buckets.has(key)) buckets.set(key, { weights: [], fats: [], waists: [] });
     const b = buckets.get(key);
     if (e.weight_kg != null) b.weights.push(e.weight_kg);
     if (e.body_fat_pct != null) b.fats.push(e.body_fat_pct);
+    if (e.waist_cm != null) b.waists.push(e.waist_cm);
   }
   const avg = (arr) => arr.reduce((a, v) => a + v, 0) / arr.length;
   return [...buckets.entries()]
@@ -52,8 +53,49 @@ export function aggregateWeighIns(entries, mode) {
       date,
       weight_kg: b.weights.length ? Math.round(avg(b.weights) * 100) / 100 : null,
       body_fat_pct: b.fats.length ? Math.round(avg(b.fats) * 10) / 10 : null,
+      waist_cm: b.waists.length ? Math.round(avg(b.waists) * 10) / 10 : null,
     }))
-    .filter((e) => e.weight_kg != null);
+    .filter((e) => e.weight_kg != null || e.waist_cm != null);
+}
+
+// Consistency over the last N completed days (today is excluded because it
+// is still in progress). Protein/kcal adherence only judges days that were
+// actually logged; unlogged days would score as unfair misses or free hits.
+export function adherenceStats(mealLog, targets, n = 7) {
+  const t = targets?.daily || {};
+  let logged = 0;
+  let proteinHit = 0;
+  let kcalHit = 0;
+  for (let i = 1; i <= n; i++) {
+    const d = todayStr(new Date(Date.now() - i * 86400000));
+    if (!mealLog.some((e) => e.date === d)) continue;
+    logged++;
+    const tot = dayTotals(mealLog, d);
+    if (t.protein_g?.min != null && tot.protein_g >= t.protein_g.min) proteinHit++;
+    if (t.kcal?.value != null && tot.kcal <= t.kcal.value) kcalHit++;
+  }
+  // Streak of consecutive logged days; an empty today doesn't break it yet
+  let streak = 0;
+  for (let i = 0; ; i++) {
+    const d = todayStr(new Date(Date.now() - i * 86400000));
+    const has = mealLog.some((e) => e.date === d);
+    if (has) streak++;
+    else if (i === 0) continue;
+    else break;
+  }
+  return { n, logged, proteinHit, kcalHit, streak };
+}
+
+// Daily kcal/protein totals for the last N days, oldest first (for the
+// macro history bars). Days with no log carry zeroes.
+export function macroHistory(mealLog, n = 14) {
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const date = todayStr(new Date(Date.now() - i * 86400000));
+    const tot = dayTotals(mealLog, date);
+    out.push({ date, kcal: tot.kcal, protein_g: tot.protein_g });
+  }
+  return out;
 }
 
 // Compare the recent weight trend against the rate needed to reach the goal

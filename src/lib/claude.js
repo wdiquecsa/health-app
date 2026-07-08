@@ -95,6 +95,45 @@ Rules:
   return JSON.parse(textBlock.text);
 }
 
+// Photo of a plate (not a label): identify foods and estimate portions.
+// The user's typed description takes precedence over what the photo shows.
+export async function parsePlateMeal(settings, foods, image, text, coachRules) {
+  const system = `You identify foods and estimate portions from a photo of a meal, producing structured nutrition data.
+
+FOOD DATABASE (authoritative, prefer these values when a food clearly matches):
+id | name | standard serving | per-serving values
+${foodsContext(foods)}
+
+Rules:
+- Identify each food on the plate and estimate the portion from visual cues (plate size, utensils, typical servings).
+- If the user provided a description, it takes precedence over the photo. Use it for details the photo cannot show (cooking method, hidden ingredients, exact amounts).
+- Match to database entries by id when clearly identifiable; scale by estimated servings of the standard serving.
+- kcal/protein_g/fibre_g in your output are TOTALS for the estimated amount, not per serving.
+- Anything visually estimated gets is_estimate: true (database matches with confident amounts may be false).
+- Be conservative rather than optimistic with portion sizes.
+- Infer the meal type from context; default to "snack" if unclear.${rulesBlock(coachRules, ['focus', 'logging_rules'])}`;
+
+  const content = [
+    { type: 'image', source: { type: 'base64', media_type: image.media_type, data: image.data } },
+    {
+      type: 'text',
+      text: text
+        ? `Photo of my meal. Extra details: ${text}`
+        : 'Photo of my meal. Identify the foods and estimate portions.',
+    },
+  ];
+  const res = await client(settings).messages.create({
+    model: settings.coachModel,
+    max_tokens: 2000,
+    system,
+    messages: [{ role: 'user', content }],
+    output_config: { format: { type: 'json_schema', schema: MEAL_SCHEMA } },
+  });
+  const textBlock = res.content.find((b) => b.type === 'text');
+  if (!textBlock) throw new Error('No response from model');
+  return JSON.parse(textBlock.text);
+}
+
 const LABEL_SCHEMA = {
   type: 'object',
   properties: {

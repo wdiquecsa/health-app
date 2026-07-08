@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { parseMeal } from '../lib/claude.js';
+import { useRef, useState } from 'react';
+import { parseMeal, parsePlateMeal } from '../lib/claude.js';
 import { appendToLog } from '../lib/github.js';
+import { fileToJpegBase64 } from '../lib/image.js';
 import { entryTotals, todayStr, round1 } from '../lib/nutrition.js';
 
 // Edit-state items keep every editable field as a STRING so typing works
@@ -47,8 +48,26 @@ export default function LogMeal({ settings, data, onLogged }) {
   const [draft, setDraft] = useState(null); // { meal, items: editItems[], usedAi }
   const [manualFoodId, setManualFoodId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
+  const photoRef = useRef(null);
+
+  async function handlePlatePhoto(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setPhotoBusy(true); setError(''); setSavedMsg('');
+    try {
+      const image = await fileToJpegBase64(file);
+      const parsed = await parsePlateMeal(settings, data.foods, image, text.trim(), data.coachRules);
+      setDraft({ meal: parsed.meal, items: parsed.items.map(toEditItem), usedAi: true });
+    } catch (err) {
+      setError(String(err.message || err));
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
 
   const foodsSorted = [...data.foods].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -171,15 +190,32 @@ export default function LogMeal({ settings, data, onLogged }) {
     <div className="card">
       <h2>Log a meal</h2>
 
-      <label>Describe it and let the AI work it out</label>
+      <label>Describe it, or photograph the plate (the text adds detail to the photo)</label>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder='e.g. "2 drumsticks, a brown roll and a handful of grapes"'
       />
-      <button className="primary" disabled={busy || !text.trim()} onClick={handleParse}>
+      <button className="primary" disabled={busy || photoBusy || !text.trim()} onClick={handleParse}>
         {busy && !draft ? 'Analysing…' : 'Analyse with AI'}
       </button>
+      <input
+        ref={photoRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePlatePhoto}
+      />
+      <button className="ghost scan-btn" disabled={busy || photoBusy}
+        onClick={() => photoRef.current && photoRef.current.click()}>
+        {photoBusy ? 'Looking at your plate…' : '📷 Photo of your plate'}
+      </button>
+      <p className="hint">
+        Portions from a photo are estimates. Add anything the photo can't show
+        (sauces, cooking oil, what's underneath) in the text box above; the photo
+        is sent only to the Claude API, then discarded.
+      </p>
 
       <label style={{ marginTop: 18 }}>Or add from your food database</label>
       <div className="manual-add">
