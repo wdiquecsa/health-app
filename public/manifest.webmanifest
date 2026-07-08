@@ -1,0 +1,11 @@
+{
+  "name": "Health — Nutrition & Fat-loss Tracker",
+  "short_name": "Health",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fcfcfb",
+  "theme_color": "#2a78d6",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
