@@ -7,9 +7,19 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
   const { targets, goals, mealLog, weightLog } = data;
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState('');
-  const today = todayStr();
-  const totals = dayTotals(mealLog, today);
-  const todayEntries = mealLog.filter((e) => e.date === today);
+  const [dayOffset, setDayOffset] = useState(0); // 0 = today, 1 = yesterday, …
+
+  const selectedDate = todayStr(new Date(Date.now() - dayOffset * 86400000));
+  const dayLabel =
+    dayOffset === 0
+      ? 'Today'
+      : dayOffset === 1
+        ? 'Yesterday'
+        : new Date(selectedDate).toLocaleDateString('en-GB', {
+            weekday: 'short', day: 'numeric', month: 'short',
+          });
+  const totals = dayTotals(mealLog, selectedDate);
+  const dayEntries = mealLog.filter((e) => e.date === selectedDate);
 
   const t = targets?.daily || {};
 
@@ -52,7 +62,7 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
     } else if (pace.requiredPerWeek != null) {
       paceTile = {
         big: `${pace.requiredPerWeek} kg/wk needed`, cls: '',
-        sub: `${pace.remaining} kg in ${weeksLeft} weeks — log a few more weigh-ins to see your trend`,
+        sub: `${pace.remaining} kg in ${weeksLeft} weeks. Log a few more weigh-ins to see your trend.`,
       };
     }
   }
@@ -62,12 +72,18 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
       {pace && pace.deadlinePassed && !pace.inRange && (
         <button className="notice-banner" onClick={onGoToSettings}>
           ⏰ Your goal deadline ({pace.deadline}) has passed and you're outside the target
-          range — tap to review your targets & goals.
+          range. Tap to review your targets and goals.
         </button>
       )}
 
       <div className="card">
-        <h2>Today</h2>
+        <div className="card-head">
+          <h2>{dayLabel}</h2>
+          <div className="day-nav">
+            <button aria-label="Previous day" onClick={() => setDayOffset(dayOffset + 1)}>‹</button>
+            <button aria-label="Next day" disabled={dayOffset === 0} onClick={() => setDayOffset(dayOffset - 1)}>›</button>
+          </div>
+        </div>
         {t.kcal && <MacroBar label="Calories" value={totals.kcal} unit="kcal" target={t.kcal} />}
         {t.protein_g && <MacroBar label="Protein" value={totals.protein_g} unit="g" target={t.protein_g} />}
         {t.fibre_g && <MacroBar label="Fibre" value={totals.fibre_g} unit="g" target={t.fibre_g} />}
@@ -76,7 +92,7 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
       <div className="stat-tiles">
         <div className="stat-tile">
           <div className="label">Current weight</div>
-          <div className="big">{latestWeight ? `${latestWeight.weight_kg} kg` : '—'}</div>
+          <div className="big">{latestWeight ? `${latestWeight.weight_kg} kg` : '-'}</div>
           {lost != null && lost !== 0 && (
             <div className={`sub ${lost > 0 ? 'delta-good' : ''}`}>
               {lost > 0 ? `↓ ${lost} kg since start` : `↑ ${-lost} kg since start`}
@@ -85,8 +101,9 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
         </div>
         <div className="stat-tile">
           <div className="label">Goal</div>
-          <div className="big">{band ? `${band.min}–${band.max} kg` : '—'}</div>
+          <div className="big">{band ? `${band.min}-${band.max} kg` : '-'}</div>
           {latestWeight && band && (
+            // Distance to the nearer (upper) edge of the goal range
             <div className="sub">{round1(latestWeight.weight_kg - band.max)} kg to go</div>
           )}
         </div>
@@ -111,9 +128,13 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
       </div>
 
       <div className="card">
-        <h2>Today's meals</h2>
-        {todayEntries.length === 0 && <p className="center">Nothing logged yet today.</p>}
-        {todayEntries.map((e) => (
+        <h2>
+          {dayOffset === 0 ? "Today's meals" : dayOffset === 1 ? "Yesterday's meals" : `Meals on ${dayLabel}`}
+        </h2>
+        {dayEntries.length === 0 && (
+          <p className="center">{dayOffset === 0 ? 'Nothing logged yet today.' : 'Nothing logged on this day.'}</p>
+        )}
+        {dayEntries.map((e) => (
           <div className="entry" key={e.id}>
             <div>
               <div>{e.meal} <span className="meta">{e.time}</span></div>

@@ -39,7 +39,7 @@ export default function Coach({ settings, data }) {
       <div className="chat">
         {messages.length === 0 && (
           <p className="hint">
-            Ask anything — "What should I eat for dinner?", "How am I doing on protein this week?",
+            Ask anything: "What should I eat for dinner?", "How am I doing on protein this week?",
             "Plan tomorrow's meals around chicken thighs."
           </p>
         )}

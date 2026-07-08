@@ -71,7 +71,7 @@ function FoodForm({ initial, busy, onSave, onCancel }) {
         {NUM_FIELDS.map(([key, label]) => (
           <div key={key}>
             <label>{label}</label>
-            <input type="number" step="any" inputMode="decimal" value={f[key]} onChange={set(key)} placeholder="—" />
+            <input type="number" step="any" inputMode="decimal" value={f[key]} onChange={set(key)} />
           </div>
         ))}
       </div>
@@ -79,7 +79,7 @@ function FoodForm({ initial, busy, onSave, onCancel }) {
       <input value={f.source_note} onChange={set('source_note')} placeholder='e.g. "Label" or "Reference estimate"' />
       <p className="hint">
         Nutrition values are per standard serving. Leave a field empty if it's not on
-        the label — empty means unknown, not zero.
+        the label. Empty means unknown, not zero.
       </p>
       <button className="primary" disabled={busy || !f.name.trim() || !f.standard_serving.trim()} onClick={submit}>
         {busy ? 'Saving…' : 'Save food'}
@@ -139,7 +139,7 @@ export default function Foods({ settings, data, onChanged }) {
     commit((foods) => foods.map((x) => (x.id === id ? { id, ...food } : x)), `Update food: ${food.name}`);
 
   function handleDelete(f) {
-    if (!window.confirm(`Delete "${f.name}" from the food database?\n\nPast meal logs keep their values — only future logging is affected.`)) return;
+    if (!window.confirm(`Delete "${f.name}" from the food database?\n\nPast meal logs keep their values. Only future logging is affected.`)) return;
     commit((foods) => foods.filter((x) => x.id !== f.id), `Remove food: ${f.name}`);
   }
 
@@ -170,15 +170,14 @@ export default function Foods({ settings, data, onChanged }) {
             onChange={handleScan}
           />
           <button
-            className="ghost"
-            style={{ width: '100%', marginTop: 10 }}
+            className="ghost scan-btn"
             onClick={() => fileRef.current && fileRef.current.click()}
             disabled={scanBusy || busy}
           >
             {scanBusy ? 'Reading label…' : '📷 Scan a nutrition label'}
           </button>
           <p className="hint">
-            Snap the label and the AI fills the form for you — review, then save. The
+            Snap the label and the AI fills the form for you. Review, then save. The
             photo is sent only to the Claude API to be read, then discarded; it is
             never stored.
           </p>
@@ -188,7 +187,12 @@ export default function Foods({ settings, data, onChanged }) {
       )}
 
       {editing == null && (
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search foods…" />
+        <div className="search-wrap">
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search foods…" />
+          {q && (
+            <button className="search-clear" aria-label="Clear search" onClick={() => setQ('')}>✕</button>
+          )}
+        </div>
       )}
 
       <div style={{ marginTop: 8 }}>

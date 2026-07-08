@@ -89,6 +89,15 @@ input, textarea, select {
   font-family: inherit;
 }
 textarea { min-height: 84px; resize: vertical; }
+/* iOS renders date inputs with its own oversized chrome; normalize to match
+   the other inputs */
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 46px;
+  line-height: 1.2;
+  display: block;
+}
 
 button.primary {
   width: 100%;
@@ -104,6 +113,7 @@ button.primary {
   font-family: inherit;
 }
 button.primary:disabled { opacity: 0.5; }
+/* One shared button style: same font, size and radius everywhere */
 button.ghost {
   background: none;
   border: 1px solid var(--baseline);
@@ -112,7 +122,65 @@ button.ghost {
   padding: 8px 14px;
   cursor: pointer;
   font-family: inherit;
+  font-size: 0.9rem;
 }
+button.ghost.block { width: 100%; margin-top: 8px; padding: 12px; }
+button.ghost:disabled { opacity: 0.5; }
+
+.card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.card-head h2 { margin: 0; }
+.day-nav { display: flex; gap: 6px; }
+.day-nav button {
+  background: none;
+  border: 1px solid var(--baseline);
+  color: var(--ink-2);
+  border-radius: 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.day-nav button:disabled { opacity: 0.35; }
+
+.search-wrap { position: relative; }
+.search-wrap input { padding-right: 40px; }
+.search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button.scan-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  font-size: 1rem;
+}
+
+.manual-add { display: flex; gap: 8px; }
+.manual-add select { flex: 1; }
+.manual-add button { flex-shrink: 0; }
+
+.draft-item { padding: 10px 0; border-bottom: 1px solid var(--grid); }
+.draft-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.draft-item-head .meta { color: var(--muted); font-size: 0.8rem; }
+.macro-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.macro-edit-grid span { display: block; font-size: 0.68rem; color: var(--muted); margin-bottom: 2px; }
+.macro-edit-grid input { padding: 8px 6px; font-size: 0.9rem; text-align: center; }
 
 .macro-row { margin-bottom: 14px; }
 .macro-row:last-child { margin-bottom: 0; }
@@ -173,10 +241,10 @@ button.ghost {
 }
 
 .num-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
-.food-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.food-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; }
 .food-head h2 { margin: 0; }
 .row-actions { display: flex; gap: 8px; margin-top: 6px; }
-.row-actions button { font-size: 0.78rem; padding: 4px 12px; }
+.row-actions button { padding: 4px 12px; }
 button.ghost.danger { color: var(--critical); border-color: var(--critical); }
 
 .item-edit {

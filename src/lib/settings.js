@@ -7,12 +7,16 @@ export const DEFAULTS = {
   repo: 'health',
   branch: 'claude/json-db-conversion-37lxw7',
   logModel: 'claude-haiku-4-5',
-  coachModel: 'claude-opus-4-8',
+  coachModel: 'claude-sonnet-5',
 };
 
 export function loadSettings() {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+    const s = { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || '{}') };
+    // The coach model was never user-editable, so stored copies of the old
+    // default can be migrated to the current one safely.
+    if (s.coachModel === 'claude-opus-4-8') s.coachModel = DEFAULTS.coachModel;
+    return s;
   } catch {
     return { ...DEFAULTS };
   }

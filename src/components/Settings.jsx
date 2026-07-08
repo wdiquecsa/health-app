@@ -3,7 +3,7 @@ import { saveSettings } from '../lib/settings.js';
 import { saveCoachRules, updateJson } from '../lib/github.js';
 
 const DEFAULT_RULES = {
-  persona: 'Supportive, practical nutrition coach. Concise and concrete — real foods with amounts, not generic advice.',
+  persona: 'Supportive, practical nutrition coach. Concise and concrete: real foods with amounts, not generic advice.',
   focus: ['Protein first, calories second, fibre third', 'Always report calories, protein and fibre'],
   logging_rules: ['Prefer foods from the database; use measured servings', 'Label values over generic references; flag estimates'],
   coaching_rules: ['Suggest concrete foods with amounts from the database'],
@@ -219,16 +219,16 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
             repo, so they version like everything else. One rule per line.
           </p>
 
-          <label>Persona — who your coach is and how it talks</label>
+          <label>Persona: who your coach is and how it talks</label>
           <textarea value={rules.persona} onChange={setRule('persona')} />
 
-          <label>Focus — priorities applied to everything (logging + coaching)</label>
+          <label>Focus: priorities applied to everything (logging and coaching)</label>
           <textarea value={rules.focus} onChange={setRule('focus')} />
 
-          <label>Logging rules — how meals get analysed and recorded</label>
+          <label>Logging rules: how meals get analysed and recorded</label>
           <textarea value={rules.logging_rules} onChange={setRule('logging_rules')} />
 
-          <label>Coaching rules — how advice and answers are given</label>
+          <label>Coaching rules: how advice and answers are given</label>
           <textarea value={rules.coaching_rules} onChange={setRule('coaching_rules')} />
 
           <button className="primary" disabled={rulesBusy} onClick={saveRules}>

@@ -9,7 +9,7 @@ import Foods from './components/Foods.jsx';
 import Settings from './components/Settings.jsx';
 
 const TABS = [
-  { id: 'today', label: 'Today', icon: '📊' },
+  { id: 'today', label: 'Dash', icon: '📊' },
   { id: 'log', label: 'Log', icon: '🍽️' },
   { id: 'weight', label: 'Weight', icon: '⚖️' },
   { id: 'coach', label: 'Coach', icon: '💬' },
@@ -85,7 +85,7 @@ export default function App() {
     <div className="app">
       {updateAvailable && (
         <button className="update-banner" onClick={reloadToLatest}>
-          ⬆️ New version available — tap to update
+          ⬆️ New version available. Tap to update.
         </button>
       )}
       <h1>Health</h1>
