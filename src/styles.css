@@ -243,8 +243,11 @@ button.scan-btn {
   font-size: 0.9rem;
 }
 .entry:last-child { border-bottom: none; }
+/* first column absorbs all spare width so the macros column always sits
+   flush right, regardless of how long the meal description is */
+.entry > div:first-child { flex: 1; min-width: 0; }
 .entry .meta { color: var(--muted); font-size: 0.8rem; }
-.entry .macros { color: var(--ink-2); font-size: 0.8rem; white-space: nowrap; }
+.entry .macros { color: var(--ink-2); font-size: 0.8rem; white-space: nowrap; text-align: right; }
 
 .update-banner {
   width: 100%;
@@ -297,6 +300,23 @@ button.ghost.danger { color: var(--critical); border-color: var(--critical); }
   margin-left: 6px;
   vertical-align: middle;
 }
+
+.suggest-q {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--grid);
+  color: var(--ink-2);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  padding: 10px 2px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.suggest-q:last-child { border-bottom: none; }
+.suggest-q:disabled { opacity: 0.5; }
 
 .chat { display: flex; flex-direction: column; gap: 10px; }
 .msg { padding: 10px 14px; border-radius: 12px; max-width: 88%; white-space: pre-wrap; font-size: 0.92rem; line-height: 1.45; }
