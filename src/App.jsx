@@ -108,7 +108,11 @@ export default function App() {
         <div className="card center">Loading your data…</div>
       )}
 
-      {ready && tab === 'today' && <Dashboard data={data} />}
+      {ready && tab === 'today' && (
+        <Dashboard settings={settings} data={data}
+          onMealLogChanged={(mealLog) => setData((d) => ({ ...d, mealLog }))}
+          onGoToSettings={() => setTab('settings')} />
+      )}
       {ready && tab === 'log' && (
         <LogMeal settings={settings} data={data}
           onLogged={(mealLog) => setData({ ...data, mealLog })} />

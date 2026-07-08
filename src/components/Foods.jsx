@@ -211,6 +211,7 @@ export default function Foods({ settings, data, onChanged }) {
 
         {editing != null && editing !== 'new' && (
           <FoodForm
+            key={editing}
             initial={data.foods.find((f) => f.id === editing)}
             busy={busy}
             onSave={handleUpdate(editing)}

@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { MacroBar, WeightChart, BodyFatChart, hasBodyFat } from './charts.jsx';
-import { dayTotals, todayStr, round1 } from '../lib/nutrition.js';
+import { dayTotals, todayStr, round1, paceStats } from '../lib/nutrition.js';
+import { updateJson } from '../lib/github.js';
 
-export default function Dashboard({ data }) {
+export default function Dashboard({ settings, data, onMealLogChanged, onGoToSettings }) {
   const { targets, goals, mealLog, weightLog } = data;
+  const [busyId, setBusyId] = useState(null);
+  const [error, setError] = useState('');
   const today = todayStr();
   const totals = dayTotals(mealLog, today);
   const todayEntries = mealLog.filter((e) => e.date === today);
@@ -13,9 +17,55 @@ export default function Dashboard({ data }) {
   const startWeight = weightLog.length ? weightLog[0] : null;
   const lost = latestWeight && startWeight ? round1(startWeight.weight_kg - latestWeight.weight_kg) : null;
   const band = goals?.long_term?.target_weight_kg || null;
+  const pace = paceStats(weightLog, goals);
+
+  async function removeMeal(e) {
+    const kcal = Math.round(e.totals?.kcal || 0);
+    if (!window.confirm(`Remove this ${e.meal} (${kcal} kcal) from today's log?`)) return;
+    setBusyId(e.id); setError('');
+    try {
+      const log = await updateJson(
+        settings, 'data/meal_log.json',
+        (cur) => (Array.isArray(cur) ? cur.filter((x) => x.id !== e.id) : []),
+        `Remove ${e.meal} entry: ${kcal} kcal`,
+      );
+      onMealLogChanged(log);
+    } catch (err) {
+      setError(String(err.message || err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  let paceTile = null;
+  if (pace && !pace.deadlinePassed) {
+    const weeksLeft = Math.round((pace.daysLeft / 7) * 10) / 10;
+    if (pace.remaining <= 0) {
+      paceTile = { big: 'In goal range 🎉', cls: 'delta-good', sub: `${weeksLeft} weeks to the deadline` };
+    } else if (pace.requiredPerWeek != null && pace.lossPerWeek != null) {
+      const onPace = pace.lossPerWeek >= pace.requiredPerWeek * 0.9;
+      paceTile = {
+        big: onPace ? 'On pace ✅' : 'Behind pace',
+        cls: onPace ? 'delta-good' : 'behind',
+        sub: `losing ${pace.lossPerWeek} kg/wk · need ${pace.requiredPerWeek} kg/wk · ${weeksLeft} wks left`,
+      };
+    } else if (pace.requiredPerWeek != null) {
+      paceTile = {
+        big: `${pace.requiredPerWeek} kg/wk needed`, cls: '',
+        sub: `${pace.remaining} kg in ${weeksLeft} weeks — log a few more weigh-ins to see your trend`,
+      };
+    }
+  }
 
   return (
     <>
+      {pace && pace.deadlinePassed && !pace.inRange && (
+        <button className="notice-banner" onClick={onGoToSettings}>
+          ⏰ Your goal deadline ({pace.deadline}) has passed and you're outside the target
+          range — tap to review your targets & goals.
+        </button>
+      )}
+
       <div className="card">
         <h2>Today</h2>
         {t.kcal && <MacroBar label="Calories" value={totals.kcal} unit="kcal" target={t.kcal} />}
@@ -40,6 +90,13 @@ export default function Dashboard({ data }) {
             <div className="sub">{round1(latestWeight.weight_kg - band.max)} kg to go</div>
           )}
         </div>
+        {paceTile && (
+          <div className="stat-tile wide">
+            <div className="label">Pace to deadline</div>
+            <div className={`big ${paceTile.cls}`}>{paceTile.big}</div>
+            <div className="sub">{paceTile.sub}</div>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -65,8 +122,17 @@ export default function Dashboard({ data }) {
             <div className="macros">
               {Math.round(e.totals.kcal)} kcal · {round1(e.totals.protein_g)}p · {round1(e.totals.fibre_g)}f
             </div>
+            <button
+              className="entry-x"
+              aria-label={`Remove ${e.meal}`}
+              disabled={busyId === e.id}
+              onClick={() => removeMeal(e)}
+            >
+              ✕
+            </button>
           </div>
         ))}
+        {error && <p className="error">{error}</p>}
       </div>
     </>
   );

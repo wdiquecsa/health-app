@@ -19,6 +19,9 @@ function b64decodeUtf8(b64) {
 async function gh(settings, path, options = {}) {
   const res = await fetch(`${API}${path}`, {
     ...options,
+    // Browsers cache GitHub API GETs for 60s; a stale read means a stale sha
+    // and a rejected write right after another write. Always fetch fresh.
+    cache: 'no-store',
     headers: {
       Authorization: `Bearer ${settings.githubToken}`,
       Accept: 'application/vnd.github+json',

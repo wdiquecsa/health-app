@@ -218,4 +218,35 @@ button.ghost.danger { color: var(--critical); border-color: var(--critical); }
 .stat-tile .label { font-size: 0.75rem; color: var(--muted); }
 .stat-tile .big { font-size: 1.5rem; font-weight: 700; margin-top: 2px; }
 .stat-tile .sub { font-size: 0.75rem; color: var(--ink-2); margin-top: 2px; }
+.stat-tile.wide { grid-column: 1 / -1; }
 .delta-good { color: var(--good-text); }
+.behind { color: var(--critical); }
+
+.notice-banner {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: var(--warning);
+  color: #0b0b0b;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.entry .entry-x {
+  background: none;
+  border: 1px solid var(--baseline);
+  color: var(--muted);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  margin-left: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+}
