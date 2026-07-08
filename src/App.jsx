@@ -17,6 +17,44 @@ const TABS = [
   { id: 'settings', label: 'Setup', icon: '⚙️' },
 ];
 
+// iOS home-screen web apps have no address bar and cache the shell hard, so
+// detect new deployments ourselves: fetch the live index.html (bypassing the
+// cache) and compare its hashed bundle name to the one currently running.
+// Checked on launch, whenever the app returns to the foreground, and hourly.
+function useUpdateAvailable() {
+  const [available, setAvailable] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    async function check() {
+      try {
+        const res = await fetch(import.meta.env.BASE_URL, { cache: 'no-store' });
+        const html = await res.text();
+        const m = html.match(/assets\/index-[\w-]+\.js/);
+        if (!m) return;
+        const running = Array.from(document.scripts).some((s) => s.src.includes(m[0]));
+        if (!cancelled && !running) setAvailable(true);
+      } catch {
+        // offline or transient error — try again next trigger
+      }
+    }
+    check();
+    const onVisible = () => document.visibilityState === 'visible' && check();
+    document.addEventListener('visibilitychange', onVisible);
+    const timer = setInterval(check, 60 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+      clearInterval(timer);
+    };
+  }, []);
+  return available;
+}
+
+function reloadToLatest() {
+  // Query param busts the cached index.html that a plain reload might re-serve
+  window.location.replace(`${import.meta.env.BASE_URL}?v=${Date.now()}`);
+}
+
 export default function App() {
   const [settings, setSettings] = useState(loadSettings);
   const [tab, setTab] = useState(isConfigured(loadSettings()) ? 'today' : 'settings');
@@ -41,9 +79,15 @@ export default function App() {
   }
 
   const ready = data != null;
+  const updateAvailable = useUpdateAvailable();
 
   return (
     <div className="app">
+      {updateAvailable && (
+        <button className="update-banner" onClick={reloadToLatest}>
+          ⬆️ New version available — tap to update
+        </button>
+      )}
       <h1>Health</h1>
 
       {loadError && <p className="error">Could not load data: {loadError}</p>}

@@ -158,6 +158,20 @@ button.ghost {
 .entry .meta { color: var(--muted); font-size: 0.8rem; }
 .entry .macros { color: var(--ink-2); font-size: 0.8rem; white-space: nowrap; }
 
+.update-banner {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: var(--series);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 12px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
 .num-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
 .food-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .food-head h2 { margin: 0; }
