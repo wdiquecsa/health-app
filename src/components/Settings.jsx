@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { saveSettings } from '../lib/settings.js';
-import { saveCoachRules } from '../lib/github.js';
+import { saveCoachRules, updateJson } from '../lib/github.js';
 
 const DEFAULT_RULES = {
   persona: 'Supportive, practical nutrition coach. Concise and concrete — real foods with amounts, not generic advice.',
@@ -12,7 +12,9 @@ const DEFAULT_RULES = {
 const toText = (arr) => (arr || []).join('\n');
 const toList = (text) => text.split('\n').map((s) => s.trim()).filter(Boolean);
 
-export default function Settings({ settings, onSaved, data, onRulesSaved }) {
+const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
+
+export default function Settings({ settings, onSaved, data, onRulesSaved, onDataPatch }) {
   const [form, setForm] = useState(settings);
   const [saved, setSaved] = useState(false);
 
@@ -20,6 +22,68 @@ export default function Settings({ settings, onSaved, data, onRulesSaved }) {
   const [rulesBusy, setRulesBusy] = useState(false);
   const [rulesSaved, setRulesSaved] = useState(false);
   const [rulesError, setRulesError] = useState('');
+
+  const [tg, setTg] = useState(null);
+  const [tgBusy, setTgBusy] = useState(false);
+  const [tgSaved, setTgSaved] = useState(false);
+  const [tgError, setTgError] = useState('');
+
+  useEffect(() => {
+    if (!data) return;
+    const d = data.targets?.daily || {};
+    const gw = data.goals?.long_term?.target_weight_kg || {};
+    setTg({
+      kcal: d.kcal?.value ?? '',
+      proteinMin: d.protein_g?.min ?? '',
+      proteinMax: d.protein_g?.max ?? '',
+      fibreMin: d.fibre_g?.min ?? '',
+      fibreMax: d.fibre_g?.max ?? '',
+      waterMin: d.water_l?.min ?? '',
+      weightMin: gw.min ?? '',
+      weightMax: gw.max ?? '',
+      deadline: data.goals?.short_term?.deadline ?? '',
+      primary: data.goals?.primary ?? '',
+    });
+  }, [data?.targets, data?.goals]);
+
+  const setT = (k) => (e) => { setTg({ ...tg, [k]: e.target.value }); setTgSaved(false); };
+
+  async function saveTargetsGoals() {
+    setTgBusy(true); setTgError('');
+    try {
+      const targets = await updateJson(settings, 'data/targets.json', (cur) => {
+        const t = cur || {};
+        return {
+          ...t,
+          daily: {
+            ...(t.daily || {}),
+            kcal: { ...(t.daily?.kcal || {}), value: numOrNull(tg.kcal), unit: 'kcal' },
+            protein_g: { ...(t.daily?.protein_g || {}), min: numOrNull(tg.proteinMin), max: numOrNull(tg.proteinMax), unit: 'g' },
+            fibre_g: { ...(t.daily?.fibre_g || {}), min: numOrNull(tg.fibreMin), max: numOrNull(tg.fibreMax), unit: 'g' },
+            water_l: { ...(t.daily?.water_l || {}), min: numOrNull(tg.waterMin), unit: 'L' },
+          },
+        };
+      }, 'Update daily targets');
+      const goals = await updateJson(settings, 'data/goals.json', (cur) => {
+        const g = cur || {};
+        return {
+          ...g,
+          primary: tg.primary.trim(),
+          short_term: { ...(g.short_term || {}), deadline: tg.deadline || null },
+          long_term: {
+            ...(g.long_term || {}),
+            target_weight_kg: { min: numOrNull(tg.weightMin), max: numOrNull(tg.weightMax) },
+          },
+        };
+      }, 'Update goals');
+      onDataPatch({ targets, goals });
+      setTgSaved(true);
+    } catch (e) {
+      setTgError(String(e.message || e));
+    } finally {
+      setTgBusy(false);
+    }
+  }
 
   useEffect(() => {
     const src = data?.coachRules || DEFAULT_RULES;
@@ -87,6 +151,64 @@ export default function Settings({ settings, onSaved, data, onRulesSaved }) {
           the coach uses {settings.coachModel}.
         </p>
       </div>
+
+      {data && tg && (
+        <div className="card">
+          <h2>Targets & goals</h2>
+          <p className="hint" style={{ marginTop: 0 }}>
+            What the dashboard measures against and the AI coaches toward. Saved to
+            <code> data/targets.json</code> and <code>data/goals.json</code>.
+          </p>
+
+          <label>Calories per day (kcal)</label>
+          <input type="number" inputMode="numeric" value={tg.kcal} onChange={setT('kcal')} />
+
+          <div className="num-grid">
+            <div>
+              <label>Protein min (g/day)</label>
+              <input type="number" inputMode="numeric" value={tg.proteinMin} onChange={setT('proteinMin')} />
+            </div>
+            <div>
+              <label>Protein max (g/day)</label>
+              <input type="number" inputMode="numeric" value={tg.proteinMax} onChange={setT('proteinMax')} />
+            </div>
+            <div>
+              <label>Fibre min (g/day)</label>
+              <input type="number" inputMode="numeric" value={tg.fibreMin} onChange={setT('fibreMin')} />
+            </div>
+            <div>
+              <label>Fibre max (g/day)</label>
+              <input type="number" inputMode="numeric" value={tg.fibreMax} onChange={setT('fibreMax')} />
+            </div>
+          </div>
+
+          <label>Water minimum (L/day)</label>
+          <input type="number" step="0.5" inputMode="decimal" value={tg.waterMin} onChange={setT('waterMin')} />
+
+          <label>Primary goal</label>
+          <input value={tg.primary} onChange={setT('primary')} placeholder="e.g. Lose body fat while maintaining muscle" />
+
+          <div className="num-grid">
+            <div>
+              <label>Target weight min (kg)</label>
+              <input type="number" step="0.5" inputMode="decimal" value={tg.weightMin} onChange={setT('weightMin')} />
+            </div>
+            <div>
+              <label>Target weight max (kg)</label>
+              <input type="number" step="0.5" inputMode="decimal" value={tg.weightMax} onChange={setT('weightMax')} />
+            </div>
+          </div>
+
+          <label>Short-term deadline</label>
+          <input type="date" value={tg.deadline || ''} onChange={setT('deadline')} />
+
+          <button className="primary" disabled={tgBusy} onClick={saveTargetsGoals}>
+            {tgBusy ? 'Saving…' : 'Save targets & goals'}
+          </button>
+          {tgSaved && <p className="hint delta-good">Saved. Dashboard and coach now use the new numbers.</p>}
+          {tgError && <p className="error">{tgError}</p>}
+        </div>
+      )}
 
       {data && rules && (
         <div className="card">

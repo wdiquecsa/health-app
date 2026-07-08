@@ -84,6 +84,15 @@ export async function saveCoachRules(settings, rules) {
   await putJson(settings, 'data/coach_rules.json', rules, sha, 'Update coach rules');
 }
 
+// Update any JSON data file through a merge function applied to its freshest
+// version, so fields the app doesn't edit are preserved.
+export async function updateJson(settings, filePath, updater, message) {
+  const { data, sha } = await getJson(settings, filePath);
+  const next = updater(data);
+  await putJson(settings, filePath, next, sha, message);
+  return next;
+}
+
 export async function loadAll(settings) {
   const [foods, targets, goals, mealLog, weightLog, coachRules] = await Promise.all([
     getJson(settings, 'data/foods.json'),

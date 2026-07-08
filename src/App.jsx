@@ -94,7 +94,8 @@ export default function App() {
 
       {tab === 'settings' && (
         <Settings settings={settings} onSaved={onSettingsSaved} data={data}
-          onRulesSaved={(coachRules) => setData({ ...data, coachRules })} />
+          onRulesSaved={(coachRules) => setData((d) => ({ ...d, coachRules }))}
+          onDataPatch={(patch) => setData((d) => ({ ...d, ...patch }))} />
       )}
 
       {!isConfigured(settings) && tab !== 'settings' && (
