@@ -141,7 +141,10 @@ function TrendChart({ pts, unit, colorVar, band, height, ariaLabel }) {
 
 // Weight line with the goal range shaded as a band.
 export function WeightChart({ entries, band }) {
-  const pts = (entries || []).map((e) => ({ date: e.date, value: e.weight_kg }));
+  // Entries can be waist-only (no weigh-in that day) — chart only real weights
+  const pts = (entries || [])
+    .filter((e) => e.weight_kg != null)
+    .map((e) => ({ date: e.date, value: e.weight_kg }));
   if (pts.length === 0) return <p className="center">No weight entries yet.</p>;
   return (
     <TrendChart pts={pts} unit="kg" colorVar="var(--series)" band={band} height={220} ariaLabel="Weight over time" />

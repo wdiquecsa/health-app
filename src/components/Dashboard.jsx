@@ -40,8 +40,10 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
 
   const t = targets?.daily || {};
 
-  const latestWeight = weightLog.length ? weightLog[weightLog.length - 1] : null;
-  const startWeight = weightLog.length ? weightLog[0] : null;
+  // Entries can be waist-only; the weight tiles want actual weigh-ins
+  const weighed = weightLog.filter((e) => e.weight_kg != null);
+  const latestWeight = weighed.length ? weighed[weighed.length - 1] : null;
+  const startWeight = weighed.length ? weighed[0] : null;
   const lost = latestWeight && startWeight ? round1(startWeight.weight_kg - latestWeight.weight_kg) : null;
   const band = goals?.long_term?.target_weight_kg || null;
   const pace = paceStats(weightLog, goals);
@@ -148,9 +150,13 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
             <div className="big-num">{adherence.kcalHit}/{adherence.logged}</div>
             <div className="sub-label">calories on target</div>
           </div>
+          <div>
+            <div className="big-num">{adherence.fibreHit}/{adherence.logged}</div>
+            <div className="sub-label">fibre target hit</div>
+          </div>
         </div>
         <p className="hint" style={{ marginTop: 10 }}>
-          Protein and calories judged over logged days in the last {adherence.n} (today excluded).
+          Targets judged over logged days in the last {adherence.n} (today excluded).
         </p>
       </div>
 
@@ -168,6 +174,13 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
             <div className="sub-label" style={{ margin: '12px 0 4px' }}>Protein per day (g)</div>
             <MacroBarsChart data={history} field="protein_g" unit="g protein"
               target={{ min: t.protein_g.min, max: t.protein_g.max }} ariaLabel="Daily protein, last 14 days" />
+          </>
+        )}
+        {t.fibre_g?.min != null && (
+          <>
+            <div className="sub-label" style={{ margin: '12px 0 4px' }}>Fibre per day (g)</div>
+            <MacroBarsChart data={history} field="fibre_g" unit="g fibre"
+              target={{ min: t.fibre_g.min, max: t.fibre_g.max }} ariaLabel="Daily fibre, last 14 days" />
           </>
         )}
       </div>

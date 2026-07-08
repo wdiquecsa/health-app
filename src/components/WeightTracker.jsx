@@ -74,9 +74,11 @@ export default function WeightTracker({ settings, data, onLogged }) {
           <div className="entry" key={`${e.date}-${i}`}>
             <div>{e.date}</div>
             <div className="macros">
-              {e.weight_kg} kg
-              {e.body_fat_pct != null ? ` · ${e.body_fat_pct}%` : ''}
-              {e.waist_cm != null ? ` · ${e.waist_cm} cm` : ''}
+              {[
+                e.weight_kg != null ? `${e.weight_kg} kg` : null,
+                e.body_fat_pct != null ? `${e.body_fat_pct}%` : null,
+                e.waist_cm != null ? `${e.waist_cm} cm` : null,
+              ].filter(Boolean).join(' · ')}
             </div>
           </div>
         ))}

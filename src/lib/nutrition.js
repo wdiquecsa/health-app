@@ -66,6 +66,7 @@ export function adherenceStats(mealLog, targets, n = 7) {
   let logged = 0;
   let proteinHit = 0;
   let kcalHit = 0;
+  let fibreHit = 0;
   for (let i = 1; i <= n; i++) {
     const d = todayStr(new Date(Date.now() - i * 86400000));
     if (!mealLog.some((e) => e.date === d)) continue;
@@ -73,6 +74,7 @@ export function adherenceStats(mealLog, targets, n = 7) {
     const tot = dayTotals(mealLog, d);
     if (t.protein_g?.min != null && tot.protein_g >= t.protein_g.min) proteinHit++;
     if (t.kcal?.value != null && tot.kcal <= t.kcal.value) kcalHit++;
+    if (t.fibre_g?.min != null && tot.fibre_g >= t.fibre_g.min) fibreHit++;
   }
   // Streak of consecutive logged days; an empty today doesn't break it yet
   let streak = 0;
@@ -83,7 +85,7 @@ export function adherenceStats(mealLog, targets, n = 7) {
     else if (i === 0) continue;
     else break;
   }
-  return { n, logged, proteinHit, kcalHit, streak };
+  return { n, logged, proteinHit, kcalHit, fibreHit, streak };
 }
 
 // Daily kcal/protein totals for the last N days, oldest first (for the
@@ -93,7 +95,7 @@ export function macroHistory(mealLog, n = 14) {
   for (let i = n - 1; i >= 0; i--) {
     const date = todayStr(new Date(Date.now() - i * 86400000));
     const tot = dayTotals(mealLog, date);
-    out.push({ date, kcal: tot.kcal, protein_g: tot.protein_g });
+    out.push({ date, kcal: tot.kcal, protein_g: tot.protein_g, fibre_g: tot.fibre_g });
   }
   return out;
 }
