@@ -95,6 +95,68 @@ Rules:
   return JSON.parse(textBlock.text);
 }
 
+const LABEL_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    category: { type: 'string' },
+    label_basis: { type: ['string', 'null'] },
+    standard_serving: { type: 'string' },
+    serving_g_ml: { type: ['number', 'null'] },
+    kcal: { type: ['number', 'null'] },
+    protein_g: { type: ['number', 'null'] },
+    fibre_g: { type: ['number', 'null'] },
+    carbs_g: { type: ['number', 'null'] },
+    sugars_g: { type: ['number', 'null'] },
+    fat_g: { type: ['number', 'null'] },
+    sat_fat_g: { type: ['number', 'null'] },
+    salt_g: { type: ['number', 'null'] },
+  },
+  required: [
+    'name', 'category', 'label_basis', 'standard_serving', 'serving_g_ml',
+    'kcal', 'protein_g', 'fibre_g', 'carbs_g', 'sugars_g', 'fat_g', 'sat_fat_g', 'salt_g',
+  ],
+  additionalProperties: false,
+};
+
+// Read a photographed nutrition label into food-database values. The image is
+// sent only to the Claude API and discarded — it is never stored anywhere.
+export async function readNutritionLabel(settings, image) {
+  const system = `You read nutrition labels from photos and extract values for a food database.
+
+Rules:
+- If the label shows a per-portion column, use the portion as the standard serving; otherwise use per 100g/100ml with standard_serving "100g" (or "100ml").
+- All nutrition values in your output must be PER the standard serving you chose.
+- Energy: use kcal. If only kJ is shown, convert (kcal = kJ / 4.184) and round to the nearest whole number.
+- If sodium is listed instead of salt, convert: salt_g = sodium_g × 2.5.
+- Labels may be in any language (fibre = vezels/Ballaststoffe/fibres; protein = eiwitten/Eiweiß/protéines).
+- Use null for anything not on the label or unreadable — never guess and never use 0 for unknown.
+- name: the product name if visible on the packaging, otherwise a sensible short description.
+- category: one word like Meat, Dairy, Bread, Cereal, Snack, Drink, Sauce.
+- label_basis: what the values were read from, e.g. "100g label" or "per portion (30g) label".`;
+
+  const res = await client(settings).messages.create({
+    model: settings.coachModel,
+    max_tokens: 1500,
+    system,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: image.media_type, data: image.data } },
+          { type: 'text', text: 'Read this nutrition label and extract the values.' },
+        ],
+      },
+    ],
+    output_config: { format: { type: 'json_schema', schema: LABEL_SCHEMA } },
+  });
+  const textBlock = res.content.find((b) => b.type === 'text');
+  if (!textBlock) throw new Error('No response from model');
+  const food = JSON.parse(textBlock.text);
+  food.source_note = 'Label (photo scan)';
+  return food;
+}
+
 export async function askCoach(settings, ctx, question) {
   const { targets, goals, todayTotals, recentMeals, recentWeights, foods, coachRules } = ctx;
   const persona =

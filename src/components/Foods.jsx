@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { round1 } from '../lib/nutrition.js';
 import { mutateFoods } from '../lib/github.js';
+import { readNutritionLabel } from '../lib/claude.js';
+import { fileToJpegBase64 } from '../lib/image.js';
 
 const NUM_FIELDS = [
   ['serving_g_ml', 'Serving g/ml'],
@@ -94,6 +96,10 @@ export default function Foods({ settings, data, onChanged }) {
   const [editing, setEditing] = useState(null); // 'new' | food id
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const fileRef = useRef(null);
+  const [scanBusy, setScanBusy] = useState(false);
+  const [scanned, setScanned] = useState(null);
+  const [scanKey, setScanKey] = useState(0);
 
   async function commit(fn, message) {
     setBusy(true); setError('');
@@ -101,10 +107,28 @@ export default function Foods({ settings, data, onChanged }) {
       const foods = await mutateFoods(settings, fn, message);
       onChanged(foods);
       setEditing(null);
+      setScanned(null);
     } catch (e) {
       setError(String(e.message || e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleScan(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+    setScanBusy(true); setError('');
+    try {
+      const image = await fileToJpegBase64(file);
+      const food = await readNutritionLabel(settings, image);
+      setScanned(food);
+      setScanKey((k) => k + 1); // remount the form with the scanned values
+    } catch (err) {
+      setError(String(err.message || err));
+    } finally {
+      setScanBusy(false);
     }
   }
 
@@ -136,7 +160,31 @@ export default function Foods({ settings, data, onChanged }) {
       </div>
 
       {editing === 'new' && (
-        <FoodForm busy={busy} onSave={handleCreate} onCancel={() => setEditing(null)} />
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={handleScan}
+          />
+          <button
+            className="ghost"
+            style={{ width: '100%', marginTop: 10 }}
+            onClick={() => fileRef.current && fileRef.current.click()}
+            disabled={scanBusy || busy}
+          >
+            {scanBusy ? 'Reading label…' : '📷 Scan a nutrition label'}
+          </button>
+          <p className="hint">
+            Snap the label and the AI fills the form for you — review, then save. The
+            photo is sent only to the Claude API to be read, then discarded; it is
+            never stored.
+          </p>
+          <FoodForm key={scanKey} initial={scanned} busy={busy} onSave={handleCreate}
+            onCancel={() => { setEditing(null); setScanned(null); }} />
+        </>
       )}
 
       {editing == null && (
