@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { MacroBar, WeightChart, BodyFatChart, hasBodyFat } from './charts.jsx';
+import { MacroBar, WeightChart, BodyFatChart, hasBodyFat, RangeToggle } from './charts.jsx';
+import { dayTotals, todayStr, round1, paceStats, aggregateWeighIns } from '../lib/nutrition.js';
+import { updateJson } from '../lib/github.js';
 
 function DayNav({ dayOffset, setDayOffset }) {
   return (
@@ -9,14 +11,14 @@ function DayNav({ dayOffset, setDayOffset }) {
     </div>
   );
 }
-import { dayTotals, todayStr, round1, paceStats } from '../lib/nutrition.js';
-import { updateJson } from '../lib/github.js';
 
 export default function Dashboard({ settings, data, onMealLogChanged, onGoToSettings }) {
   const { targets, goals, mealLog, weightLog } = data;
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState('');
   const [dayOffset, setDayOffset] = useState(0); // 0 = today, 1 = yesterday, …
+  const [chartMode, setChartMode] = useState('day');
+  const chartEntries = aggregateWeighIns(weightLog, chartMode);
 
   const selectedDate = todayStr(new Date(Date.now() - dayOffset * 86400000));
   const dayLabel =
@@ -124,12 +126,15 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
       </div>
 
       <div className="card">
-        <h2>Weight</h2>
-        <WeightChart entries={weightLog} band={band} />
-        {hasBodyFat(weightLog) && (
+        <div className="card-head">
+          <h2>Weight</h2>
+          <RangeToggle mode={chartMode} setMode={setChartMode} />
+        </div>
+        <WeightChart entries={chartEntries} band={band} />
+        {hasBodyFat(chartEntries) && (
           <>
             <h2 style={{ marginTop: 16 }}>Body fat</h2>
-            <BodyFatChart entries={weightLog} />
+            <BodyFatChart entries={chartEntries} />
           </>
         )}
       </div>

@@ -129,6 +129,24 @@ button.ghost:disabled { opacity: 0.5; }
 
 .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .card-head h2 { margin: 0; }
+.seg {
+  display: flex;
+  border: 1px solid var(--baseline);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.seg button {
+  background: none;
+  border: none;
+  color: var(--ink-2);
+  font-size: 0.78rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.seg button + button { border-left: 1px solid var(--baseline); }
+.seg button.active { background: var(--series); color: #fff; font-weight: 600; }
+
 .day-nav { display: flex; gap: 6px; }
 .day-nav button {
   background: none;

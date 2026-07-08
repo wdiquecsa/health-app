@@ -25,6 +25,37 @@ export function round1(n) {
 
 const DAY_MS = 86400000;
 
+// Consolidate weigh-ins into weekly (Monday-start) or monthly averages.
+// 'day' returns entries untouched. Body fat averages only the entries that
+// have a reading; a bucket with none keeps it null.
+export function aggregateWeighIns(entries, mode) {
+  if (mode === 'day' || !entries || entries.length === 0) return entries || [];
+  const bucketKey = (dateStr) => {
+    const d = new Date(dateStr);
+    if (mode === 'month') return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return todayStr(monday);
+  };
+  const buckets = new Map();
+  for (const e of entries) {
+    const key = bucketKey(e.date);
+    if (!buckets.has(key)) buckets.set(key, { weights: [], fats: [] });
+    const b = buckets.get(key);
+    if (e.weight_kg != null) b.weights.push(e.weight_kg);
+    if (e.body_fat_pct != null) b.fats.push(e.body_fat_pct);
+  }
+  const avg = (arr) => arr.reduce((a, v) => a + v, 0) / arr.length;
+  return [...buckets.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, b]) => ({
+      date,
+      weight_kg: b.weights.length ? Math.round(avg(b.weights) * 100) / 100 : null,
+      body_fat_pct: b.fats.length ? Math.round(avg(b.fats) * 10) / 10 : null,
+    }))
+    .filter((e) => e.weight_kg != null);
+}
+
 // Compare the recent weight trend against the rate needed to reach the goal
 // range by the deadline. Trend uses up to a 14-day window ending at the
 // latest weigh-in — single weigh-ins are too noisy to judge pace by.

@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { appendToLog } from '../lib/github.js';
-import { todayStr } from '../lib/nutrition.js';
-import { WeightChart, BodyFatChart, hasBodyFat } from './charts.jsx';
+import { todayStr, aggregateWeighIns } from '../lib/nutrition.js';
+import { WeightChart, BodyFatChart, hasBodyFat, RangeToggle } from './charts.jsx';
 
 export default function WeightTracker({ settings, data, onLogged }) {
   const [kg, setKg] = useState('');
   const [bf, setBf] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [chartMode, setChartMode] = useState('day');
   const band = data.goals?.long_term?.target_weight_kg || null;
+  const chartEntries = aggregateWeighIns(data.weightLog, chartMode);
 
   async function save() {
     setBusy(true); setError('');
@@ -42,12 +44,15 @@ export default function WeightTracker({ settings, data, onLogged }) {
       </div>
 
       <div className="card">
-        <h2>Progress</h2>
-        <WeightChart entries={data.weightLog} band={band} />
-        {hasBodyFat(data.weightLog) && (
+        <div className="card-head">
+          <h2>Progress</h2>
+          <RangeToggle mode={chartMode} setMode={setChartMode} />
+        </div>
+        <WeightChart entries={chartEntries} band={band} />
+        {hasBodyFat(chartEntries) && (
           <>
             <h2 style={{ marginTop: 16 }}>Body fat</h2>
-            <BodyFatChart entries={data.weightLog} />
+            <BodyFatChart entries={chartEntries} />
           </>
         )}
       </div>

@@ -163,3 +163,16 @@ export function BodyFatChart({ entries }) {
 export function hasBodyFat(entries) {
   return (entries || []).some((e) => e.body_fat_pct != null);
 }
+
+// Day / Week / Month segmented control for the weigh-in charts.
+export function RangeToggle({ mode, setMode }) {
+  return (
+    <div className="seg" role="group" aria-label="Aggregation period">
+      {['day', 'week', 'month'].map((m) => (
+        <button key={m} className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>
+          {m[0].toUpperCase() + m.slice(1)}
+        </button>
+      ))}
+    </div>
+  );
+}
