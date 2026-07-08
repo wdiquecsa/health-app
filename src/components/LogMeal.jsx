@@ -11,16 +11,27 @@ import { entryTotals, todayStr, round1 } from '../lib/nutrition.js';
 // instead of compounding rounding (and so 0 is recoverable).
 function toEditItem(it) {
   const s = it.servings > 0 ? it.servings : 1;
+  // null macros mean the food DB doesn't know that value: show an empty
+  // field plus a warning instead of silently pretending it's 0
+  const missing = [];
+  const str = (v, name) => {
+    if (v == null) {
+      missing.push(name);
+      return '';
+    }
+    return String(v);
+  };
   return {
     food_id: it.food_id ?? null,
     name: it.name,
     quantity: it.quantity || '',
     is_estimate: Boolean(it.is_estimate),
     servingsStr: String(it.servings),
-    kcalStr: String(it.kcal),
-    proteinStr: String(it.protein_g),
-    fibreStr: String(it.fibre_g),
-    base: { kcal: it.kcal / s, protein_g: it.protein_g / s, fibre_g: it.fibre_g / s },
+    kcalStr: str(it.kcal, 'kcal'),
+    proteinStr: str(it.protein_g, 'protein'),
+    fibreStr: str(it.fibre_g, 'fibre'),
+    base: { kcal: (it.kcal || 0) / s, protein_g: (it.protein_g || 0) / s, fibre_g: (it.fibre_g || 0) / s },
+    missing,
   };
 }
 
@@ -92,9 +103,9 @@ export default function LogMeal({ settings, data, onLogged }) {
       name: food.name,
       quantity: food.standard_serving,
       servings: 1,
-      kcal: food.kcal || 0,
-      protein_g: food.protein_g || 0,
-      fibre_g: food.fibre_g || 0,
+      kcal: food.kcal,
+      protein_g: food.protein_g,
+      fibre_g: food.fibre_g,
       is_estimate: false,
     });
     setDraft((d) =>
@@ -121,13 +132,18 @@ export default function LogMeal({ settings, data, onLogged }) {
           }
         } else {
           // A macro was edited directly: update its base so future servings
-          // changes scale from the corrected value
+          // changes scale from the corrected value, and clear its
+          // missing-value warning
           const s = num(next.servingsStr) || 1;
           next.base = {
             kcal: num(next.kcalStr) / s,
             protein_g: num(next.proteinStr) / s,
             fibre_g: num(next.fibreStr) / s,
           };
+          const editedField = { kcalStr: 'kcal', proteinStr: 'protein', fibreStr: 'fibre' }[Object.keys(patch)[0]];
+          if (editedField && next.missing?.includes(editedField) && Object.values(patch)[0] !== '') {
+            next.missing = next.missing.filter((m) => m !== editedField);
+          }
         }
         return next;
       }),
@@ -196,9 +212,6 @@ export default function LogMeal({ settings, data, onLogged }) {
         onChange={(e) => setText(e.target.value)}
         placeholder='e.g. "2 drumsticks, a brown roll and a handful of grapes"'
       />
-      <button className="primary" disabled={busy || photoBusy || !text.trim()} onClick={handleParse}>
-        {busy && !draft ? 'Analysing…' : 'Analyse with AI'}
-      </button>
       <input
         ref={photoRef}
         type="file"
@@ -216,8 +229,11 @@ export default function LogMeal({ settings, data, onLogged }) {
         (sauces, cooking oil, what's underneath) in the text box above; the photo
         is sent only to the Claude API, then discarded.
       </p>
+      <button className="primary" disabled={busy || photoBusy || !text.trim()} onClick={handleParse}>
+        {busy && !draft ? 'Analysing…' : 'AI Analysis'}
+      </button>
 
-      <label style={{ marginTop: 18 }}>Or add from your food database</label>
+      <label style={{ marginTop: 20 }}>Or add from your food database</label>
       <div className="manual-add">
         <select value={manualFoodId} onChange={(e) => setManualFoodId(e.target.value)}>
           <option value="">Choose a food…</option>
@@ -244,6 +260,9 @@ export default function LogMeal({ settings, data, onLogged }) {
                 <div>
                   {it.name}
                   {it.is_estimate && <span className="estimate-badge">estimate</span>}
+                  {it.missing?.length > 0 && (
+                    <span className="missing-badge">⚠ {it.missing.join(', ')} unknown</span>
+                  )}
                   <span className="meta"> {it.quantity}</span>
                 </div>
                 <button className="entry-x" aria-label={`Remove ${it.name}`} onClick={() => removeItem(i)}>✕</button>
@@ -272,6 +291,14 @@ export default function LogMeal({ settings, data, onLogged }) {
               </div>
             </div>
           ))}
+
+          {draft.items.some((it) => it.missing?.length > 0) && (
+            <p className="hint">
+              ⚠ Some values are unknown in your food database (empty fields count as 0
+              in the totals). Fill them in here, or edit the food in the Foods tab to
+              fix it permanently.
+            </p>
+          )}
 
           <p className="hint">
             Total: <strong>{Math.round(totals.kcal)} kcal, {round1(totals.protein_g)}g protein, {round1(totals.fibre_g)}g fibre</strong>

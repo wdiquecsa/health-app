@@ -13,14 +13,20 @@ function client(settings) {
 }
 
 // Compact food list so the model matches against real database entries.
+// null means unknown/not-on-label; shown as ? so the model estimates it
+// instead of reading a misleading 0.
 function foodsContext(foods) {
+  const v = (x) => (x == null ? '?' : x);
   return foods
     .map(
       (f) =>
-        `${f.id} | ${f.name} | serving: ${f.standard_serving} | kcal ${f.kcal} | protein ${f.protein_g}g | fibre ${f.fibre_g}g`,
+        `${f.id} | ${f.name} | serving: ${f.standard_serving} | kcal ${v(f.kcal)} | protein ${v(f.protein_g)}g | fibre ${v(f.fibre_g)}g`,
     )
     .join('\n');
 }
+
+const UNKNOWN_VALUE_RULE =
+  "- A '?' in the database means that value is unknown there. Estimate it from typical label/reference values, use your estimate in the totals, and set is_estimate to true for that item.";
 
 // User-editable rules from data/coach_rules.json (edited in the Settings tab).
 // Sections are picked per call site so logging and coaching each get what's relevant.
@@ -81,6 +87,7 @@ Rules:
 - "servings" is the number of standard servings (e.g. 300g Skyr with a 200g serving = 1.5 servings).
 - kcal/protein_g/fibre_g in your output are the TOTALS for the quantity eaten, not per serving.
 - If a food is not in the database, estimate using typical label/reference values, set food_id to null and is_estimate to true.
+${UNKNOWN_VALUE_RULE}
 - Infer the meal type from context or time words; default to "snack" if unclear.${rulesBlock(coachRules, ['focus', 'logging_rules'])}`;
 
   const res = await client(settings).messages.create({
@@ -110,6 +117,7 @@ Rules:
 - Match to database entries by id when clearly identifiable; scale by estimated servings of the standard serving.
 - kcal/protein_g/fibre_g in your output are TOTALS for the estimated amount, not per serving.
 - Anything visually estimated gets is_estimate: true (database matches with confident amounts may be false).
+${UNKNOWN_VALUE_RULE}
 - Be conservative rather than optimistic with portion sizes.
 - Infer the meal type from context; default to "snack" if unclear.${rulesBlock(coachRules, ['focus', 'logging_rules'])}`;
 
