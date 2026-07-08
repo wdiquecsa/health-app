@@ -1,11 +1,13 @@
 # Health App
 
 Personal nutrition & fat-loss tracker PWA. Static frontend hosted on GitHub
-Pages; all data lives as JSON flatfiles in a **private** GitHub repo, read and
-written through the GitHub Contents API. AI features call the Claude API
-directly from the browser.
+Pages; all personal data lives as JSON flatfiles in a **private** GitHub repo,
+read and written through the GitHub Contents API. AI features call the Claude
+API directly from the browser.
 
-**No data is stored in this repository** — it is only app code.
+**No personal data is stored in this repository** — it contains only app code
+and, under [`private-repo-db/`](private-repo-db/), *sample* database files
+with fake example data for people setting up their own copy.
 
 ## Architecture
 
@@ -21,17 +23,61 @@ Claude API (browser-direct)
   · claude-opus-4-8   → macro-aware coaching
 ```
 
-## Setup (one time, per device)
+Every meal log and weigh-in is a git commit in the private repo, so the full
+data history is versioned, auditable, and recoverable.
 
-1. Open the deployed app → **Setup** tab.
-2. **GitHub token**: create a fine-grained personal access token at
-   github.com → Settings → Developer settings → Fine-grained tokens, scoped to
-   *only* the private data repo, with **Contents: Read and write**.
-3. **Anthropic API key**: create at console.anthropic.com.
-4. Both are stored in the browser's localStorage only, and sent only to
-   `api.github.com` and `api.anthropic.com`.
+## Run your own copy
 
-On a phone, use "Add to Home Screen" to install it as an app.
+### 1. Fork/copy this repo and deploy it
+
+1. Fork (or copy) this repository — it can stay public; it holds no data.
+2. In your fork: **Settings → Pages → Build and deployment → Source →
+   GitHub Actions**.
+3. Push to `main` (or re-run the *Deploy to GitHub Pages* workflow). The app
+   goes live at `https://<your-username>.github.io/health-app/`.
+4. If you rename the repo, update `base` in `vite.config.js` to match
+   (`/your-repo-name/`).
+
+### 2. Create your private data repo
+
+1. Create a **private** repository (e.g. `health`).
+2. Create a `data/` folder in it and copy in the sample files from
+   [`private-repo-db/`](private-repo-db/) — same filenames:
+
+   | File | What it is |
+   |---|---|
+   | `foods.json` | Your food database — the single source of truth the AI matches against. Replace the samples with foods you actually eat (label values preferred). |
+   | `targets.json` | Daily targets: calories, protein, fibre, water. |
+   | `goals.json` | Long-term goal, target weight range, milestones (drives the dashboard's goal band). |
+   | `profile.json` | Who you are + activity routine (context for the AI coach). |
+   | `settings.json` | Logging/data rules. |
+   | `meal_templates.json` | Reusable meal structures (optional). |
+   | `recipes.json` | Recipes as ingredient lists referencing food ids (optional). |
+   | `meal_log.json` | Your meal log — start it as `[]`; the sample shows the entry shape the app writes. |
+   | `weight_log.json` | Your weigh-ins — start it as `[]` or with a baseline entry. |
+
+3. Edit `foods.json`, `targets.json`, `goals.json` and `profile.json` to be
+   about *you*. Conventions: kebab-case `id`s, snake_case nutrient keys with
+   units in the name (`protein_g`), nutrition values are **per standard
+   serving**, and `null` means unknown (never treat as 0).
+
+### 3. Get your two keys
+
+- **GitHub token** — GitHub → Settings → Developer settings → **Fine-grained
+  personal access tokens** → scope it to *only* your private data repo, with
+  **Contents: Read and write**. Nothing else.
+- **Anthropic API key** — [console.claude.com](https://console.claude.com).
+  Typical usage (a few AI meal logs + coach questions per day) costs a couple
+  of dollars per month.
+
+### 4. Configure the app
+
+Open your deployed app → **Setup** tab → enter both keys plus your data repo's
+owner, name, and branch. Everything is stored in that device's localStorage
+only, and sent only to `api.github.com` and `api.anthropic.com` — there is no
+backend.
+
+On a phone, use **Add to Home Screen** to install it as an app.
 
 ## Development
 

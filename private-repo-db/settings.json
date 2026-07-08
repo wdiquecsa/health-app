@@ -1,0 +1,15 @@
+{
+  "meal_logging": {
+    "always_report": ["kcal", "protein_g", "fibre_g"],
+    "use_measured_servings": true,
+    "avoid_excessive_snacking": true
+  },
+  "data_rules": {
+    "foods_db_is_authoritative": true,
+    "source_preference": ["label", "reference"],
+    "reference_values_must_be_identified": true,
+    "recipes_separate_from_foods": true,
+    "foods_db_contains": "ingredients only — no recipes, no meal logs, no daily tracking",
+    "recipes_calculated_from_ingredients": true
+  }
+}

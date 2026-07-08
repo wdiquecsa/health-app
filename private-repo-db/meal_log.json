@@ -1,0 +1,33 @@
+[
+  {
+    "id": "1751970300000",
+    "date": "2026-07-08",
+    "time": "12:45",
+    "meal": "lunch",
+    "text": "protein shake and a banana",
+    "items": [
+      {
+        "food_id": "whey-protein",
+        "name": "Whey protein powder",
+        "quantity": "1 scoop (30g)",
+        "servings": 1,
+        "kcal": 117,
+        "protein_g": 22,
+        "fibre_g": 0,
+        "is_estimate": false
+      },
+      {
+        "food_id": "banana",
+        "name": "Banana",
+        "quantity": "1 medium (118g)",
+        "servings": 1,
+        "kcal": 105,
+        "protein_g": 1.3,
+        "fibre_g": 3.1,
+        "is_estimate": false
+      }
+    ],
+    "totals": { "kcal": 222, "protein_g": 23.3, "fibre_g": 3.1 },
+    "source": "ai"
+  }
+]

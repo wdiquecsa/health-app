@@ -1,0 +1,12 @@
+[
+  {
+    "id": "example-stir-fry",
+    "name": "Example chicken stir-fry",
+    "status": "draft",
+    "ingredients": [
+      { "food_id": "chicken-breast", "servings": 1 },
+      { "food_id": "brown-rice", "servings": 1 }
+    ],
+    "notes": "Recipes store ingredients + quantities only; nutrition is always calculated from foods.json"
+  }
+]

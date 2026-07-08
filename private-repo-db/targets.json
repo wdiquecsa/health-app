@@ -1,0 +1,15 @@
+{
+  "daily": {
+    "kcal": { "value": 2000, "unit": "kcal" },
+    "protein_g": { "min": 120, "max": 140, "unit": "g" },
+    "fibre_g": { "min": 25, "max": 35, "unit": "g" },
+    "water_l": { "min": 2, "unit": "L" }
+  },
+  "priority": ["protein_g", "kcal", "fibre_g"],
+  "philosophy": [
+    "Don't chase the lowest calories possible",
+    "Aim for consistent daily targets with high protein and high fibre",
+    "Missing a target occasionally is acceptable",
+    "Consistency matters more than perfection"
+  ]
+}

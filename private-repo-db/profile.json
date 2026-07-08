@@ -1,0 +1,25 @@
+{
+  "name": "Alex Example",
+  "sex": "male",
+  "age": 35,
+  "height_cm": 178,
+  "starting_weight_kg": 85,
+  "lifestyle": "desk job, mostly sedentary",
+  "activity": {
+    "daily": [
+      {
+        "id": "commute-walking",
+        "type": "walking",
+        "description": "Walk to/from work",
+        "distance_km_per_trip": 2,
+        "trips_per_day": 2
+      }
+    ],
+    "gym": {
+      "sessions_per_week": 3,
+      "cardio": [{ "id": "treadmill", "type": "running", "duration_min": 15 }],
+      "resistance": ["chest", "back", "legs", "shoulders", "arms", "abs"],
+      "focus": "fat loss while building some muscle"
+    }
+  }
+}

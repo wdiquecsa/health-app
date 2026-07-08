@@ -1,0 +1,18 @@
+{
+  "primary": "Lose body fat while maintaining muscle",
+  "short_term": {
+    "deadline": "2026-12-31",
+    "targets": ["Example short-term goal, e.g. flat stomach"]
+  },
+  "long_term": {
+    "weight_loss_kg": { "min": 8, "max": 10 },
+    "target_weight_kg": { "min": 75, "max": 77 },
+    "targets": ["Maintain muscle throughout the cut"]
+  },
+  "expected_milestones": [
+    { "period": "2026-08", "weight_kg": { "min": 83, "max": 84 } },
+    { "period": "2026-10", "weight_kg": { "min": 80, "max": 81 } },
+    { "period": "2026-12", "weight_kg": { "min": 77, "max": 78 } }
+  ],
+  "expected_appearance": ["Example: leaner waist", "Example: more defined chest"]
+}

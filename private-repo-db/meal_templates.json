@@ -1,0 +1,33 @@
+[
+  {
+    "id": "breakfast-default",
+    "meal": "breakfast",
+    "name": "Oats + yogurt",
+    "items": [
+      { "food_id": "oats", "servings": 1 },
+      { "food_id": "greek-yogurt", "servings": 0.5 }
+    ],
+    "notes": "Example template — items reference food ids from foods.json"
+  },
+  {
+    "id": "lunch-shake",
+    "meal": "lunch",
+    "name": "Protein shake + banana",
+    "items": [
+      { "food_id": "whey-protein", "servings": 1 },
+      { "food_id": "banana", "servings": 1 }
+    ]
+  },
+  {
+    "id": "dinner-rotation",
+    "meal": "dinner",
+    "name": "Dinner (usually one of)",
+    "items": [],
+    "options": [
+      { "food_id": "chicken-breast", "name": "Chicken breast" },
+      { "food_id": "brown-rice", "name": "Brown rice" },
+      { "food_id": null, "name": "Vegetables (not in foods.json yet)" }
+    ],
+    "notes": "food_id null = not yet in foods.json"
+  }
+]
