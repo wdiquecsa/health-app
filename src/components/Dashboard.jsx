@@ -1,5 +1,14 @@
 import { useState } from 'react';
 import { MacroBar, WeightChart, BodyFatChart, hasBodyFat } from './charts.jsx';
+
+function DayNav({ dayOffset, setDayOffset }) {
+  return (
+    <div className="day-nav">
+      <button aria-label="Previous day" onClick={() => setDayOffset(dayOffset + 1)}>‹</button>
+      <button aria-label="Next day" disabled={dayOffset === 0} onClick={() => setDayOffset(dayOffset - 1)}>›</button>
+    </div>
+  );
+}
 import { dayTotals, todayStr, round1, paceStats } from '../lib/nutrition.js';
 import { updateJson } from '../lib/github.js';
 
@@ -76,13 +85,11 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
         </button>
       )}
 
+      {/* One shared day selection: the arrows on either card move both */}
       <div className="card">
         <div className="card-head">
           <h2>{dayLabel}</h2>
-          <div className="day-nav">
-            <button aria-label="Previous day" onClick={() => setDayOffset(dayOffset + 1)}>‹</button>
-            <button aria-label="Next day" disabled={dayOffset === 0} onClick={() => setDayOffset(dayOffset - 1)}>›</button>
-          </div>
+          <DayNav dayOffset={dayOffset} setDayOffset={setDayOffset} />
         </div>
         {t.kcal && <MacroBar label="Calories" value={totals.kcal} unit="kcal" target={t.kcal} />}
         {t.protein_g && <MacroBar label="Protein" value={totals.protein_g} unit="g" target={t.protein_g} />}
@@ -128,9 +135,12 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
       </div>
 
       <div className="card">
-        <h2>
-          {dayOffset === 0 ? "Today's meals" : dayOffset === 1 ? "Yesterday's meals" : `Meals on ${dayLabel}`}
-        </h2>
+        <div className="card-head">
+          <h2>
+            {dayOffset === 0 ? "Today's meals" : dayOffset === 1 ? "Yesterday's meals" : `Meals on ${dayLabel}`}
+          </h2>
+          <DayNav dayOffset={dayOffset} setDayOffset={setDayOffset} />
+        </div>
         {dayEntries.length === 0 && (
           <p className="center">{dayOffset === 0 ? 'Nothing logged yet today.' : 'Nothing logged on this day.'}</p>
         )}
