@@ -156,6 +156,13 @@ button.ghost {
 .entry .meta { color: var(--muted); font-size: 0.8rem; }
 .entry .macros { color: var(--ink-2); font-size: 0.8rem; white-space: nowrap; }
 
+.num-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
+.food-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.food-head h2 { margin: 0; }
+.row-actions { display: flex; gap: 8px; margin-top: 6px; }
+.row-actions button { font-size: 0.78rem; padding: 4px 12px; }
+button.ghost.danger { color: var(--critical); border-color: var(--critical); }
+
 .item-edit {
   display: grid;
   grid-template-columns: 1fr 70px;

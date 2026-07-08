@@ -69,6 +69,15 @@ export async function appendToLog(settings, filePath, entry, message) {
   return log;
 }
 
+// Apply a mutation to the foods database against its freshest version, so
+// concurrent edits from other devices aren't clobbered.
+export async function mutateFoods(settings, fn, message) {
+  const { data, sha } = await getJson(settings, 'data/foods.json');
+  const foods = fn(Array.isArray(data) ? data : []);
+  await putJson(settings, 'data/foods.json', foods, sha, message);
+  return foods;
+}
+
 // Overwrite the coach rules file, re-fetching the latest sha first.
 export async function saveCoachRules(settings, rules) {
   const { sha } = await getJson(settings, 'data/coach_rules.json');

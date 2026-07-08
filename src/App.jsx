@@ -73,7 +73,10 @@ export default function App() {
           onLogged={(weightLog) => setData({ ...data, weightLog })} />
       )}
       {ready && tab === 'coach' && <Coach settings={settings} data={data} />}
-      {ready && tab === 'foods' && <Foods data={data} />}
+      {ready && tab === 'foods' && (
+        <Foods settings={settings} data={data}
+          onChanged={(foods) => setData({ ...data, foods })} />
+      )}
 
       <nav className="tabbar">
         {TABS.map((t) => (
