@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { parseMeal, parsePlateMeal } from '../lib/claude.js';
 import { appendToLog } from '../lib/github.js';
 import { fileToJpegBase64 } from '../lib/image.js';
-import { entryTotals, todayStr, round1 } from '../lib/nutrition.js';
+import { entryTotals, todayStr, round1, parseDecimal } from '../lib/nutrition.js';
 
 // Edit-state items keep every editable field as a STRING so typing works
 // naturally (clearing a field, "0.5", "12." are all valid intermediate
@@ -36,8 +36,8 @@ function toEditItem(it) {
 }
 
 const num = (str) => {
-  const v = parseFloat(str);
-  return Number.isFinite(v) && v >= 0 ? v : 0;
+  const v = parseDecimal(str);
+  return v != null && v >= 0 ? v : 0;
 };
 
 function draftTotals(items) {
@@ -124,8 +124,8 @@ export default function LogMeal({ settings, data, onLogged }) {
         const next = { ...it, ...patch };
         if (patch.servingsStr !== undefined) {
           // Servings changed: recompute macros from per-serving base values
-          const v = parseFloat(patch.servingsStr);
-          if (Number.isFinite(v) && v >= 0) {
+          const v = parseDecimal(patch.servingsStr);
+          if (v != null && v >= 0) {
             next.kcalStr = String(round1(it.base.kcal * v));
             next.proteinStr = String(round1(it.base.protein_g * v));
             next.fibreStr = String(round1(it.base.fibre_g * v));

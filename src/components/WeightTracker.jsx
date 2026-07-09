@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { appendToLog } from '../lib/github.js';
-import { todayStr, aggregateWeighIns } from '../lib/nutrition.js';
+import { todayStr, aggregateWeighIns, parseDecimal } from '../lib/nutrition.js';
 import { WeightChart, BodyFatChart, WaistChart, hasBodyFat, hasWaist, RangeToggle } from './charts.jsx';
 
 export default function WeightTracker({ settings, data, onLogged }) {
@@ -16,10 +16,11 @@ export default function WeightTracker({ settings, data, onLogged }) {
   async function save() {
     setBusy(true); setError('');
     try {
-      const entry = { date: todayStr(), weight_kg: parseFloat(kg) };
-      if (parseFloat(bf)) entry.body_fat_pct = parseFloat(bf);
-      if (parseFloat(waist)) entry.waist_cm = parseFloat(waist);
-      const log = await appendToLog(settings, 'data/weight_log.json', entry, `Weigh-in: ${kg} kg`);
+      const w = parseDecimal(kg);
+      const entry = { date: todayStr(), weight_kg: w };
+      if (parseDecimal(bf)) entry.body_fat_pct = parseDecimal(bf);
+      if (parseDecimal(waist)) entry.waist_cm = parseDecimal(waist);
+      const log = await appendToLog(settings, 'data/weight_log.json', entry, `Weigh-in: ${w} kg`);
       onLogged(log);
       setKg(''); setBf(''); setWaist('');
     } catch (e) {
@@ -36,12 +37,12 @@ export default function WeightTracker({ settings, data, onLogged }) {
       <div className="card">
         <h2>Add measurement</h2>
         <label>Weight (kg)</label>
-        <input type="number" step="0.1" inputMode="decimal" value={kg} onChange={(e) => setKg(e.target.value)} placeholder="e.g. 91.4" />
+        <input type="text" inputMode="decimal" value={kg} onChange={(e) => setKg(e.target.value)} placeholder="e.g. 91.4" />
         <label>Body fat % (optional)</label>
-        <input type="number" step="0.1" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} placeholder="e.g. 28.9" />
+        <input type="text" inputMode="decimal" value={bf} onChange={(e) => setBf(e.target.value)} placeholder="e.g. 28.9" />
         <label>Waist (cm, optional)</label>
-        <input type="number" step="0.5" inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} placeholder="e.g. 98" />
-        <button className="primary" disabled={busy || !parseFloat(kg)} onClick={save}>
+        <input type="text" inputMode="decimal" value={waist} onChange={(e) => setWaist(e.target.value)} placeholder="e.g. 98" />
+        <button className="primary" disabled={busy || !parseDecimal(kg)} onClick={save}>
           {busy ? 'Saving…' : 'Save'}
         </button>
         {error && <p className="error">{error}</p>}

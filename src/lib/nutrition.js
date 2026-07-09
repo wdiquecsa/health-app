@@ -23,6 +23,15 @@ export function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+// iOS decimal keypads produce ',' in comma-decimal locales (NL among them);
+// accept either separator. Returns null for empty/unparseable input — JSON
+// always stores dot-decimal numbers.
+export function parseDecimal(v) {
+  if (v == null || String(v).trim() === '') return null;
+  const n = parseFloat(String(v).trim().replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
 const DAY_MS = 86400000;
 
 // Consolidate weigh-ins into weekly (Monday-start) or monthly averages.

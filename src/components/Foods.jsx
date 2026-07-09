@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { round1 } from '../lib/nutrition.js';
+import { round1, parseDecimal } from '../lib/nutrition.js';
 import { mutateFoods } from '../lib/github.js';
 import { readNutritionLabel } from '../lib/claude.js';
 import { fileToJpegBase64 } from '../lib/image.js';
@@ -50,9 +50,10 @@ function FoodForm({ initial, busy, onSave, onCancel }) {
       standard_serving: f.standard_serving.trim(),
       source_note: f.source_note.trim() || null,
     };
-    // Empty numeric input means unknown → null (never 0)
+    // Empty numeric input means unknown → null (never 0); parseDecimal also
+    // accepts a comma as the decimal separator (iOS keypad in NL locale)
     for (const [key] of NUM_FIELDS) {
-      food[key] = f[key] === '' || f[key] === null ? null : Number(f[key]);
+      food[key] = parseDecimal(f[key]);
     }
     onSave(food);
   }
@@ -71,7 +72,7 @@ function FoodForm({ initial, busy, onSave, onCancel }) {
         {NUM_FIELDS.map(([key, label]) => (
           <div key={key}>
             <label>{label}</label>
-            <input type="number" step="any" inputMode="decimal" value={f[key]} onChange={set(key)} />
+            <input type="text" inputMode="decimal" value={f[key]} onChange={set(key)} />
           </div>
         ))}
       </div>

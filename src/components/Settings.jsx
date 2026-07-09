@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { saveSettings } from '../lib/settings.js';
 import { saveCoachRules, updateJson } from '../lib/github.js';
+import { parseDecimal } from '../lib/nutrition.js';
 
 // Textarea that keeps its normal height as a minimum and grows with the
 // content, so long rule lists never need inner scrolling.
@@ -27,7 +28,7 @@ const DEFAULT_RULES = {
 const toText = (arr) => (arr || []).join('\n');
 const toList = (text) => text.split('\n').map((s) => s.trim()).filter(Boolean);
 
-const numOrNull = (v) => (v === '' || v == null ? null : Number(v));
+const numOrNull = (v) => parseDecimal(v);
 
 export default function Settings({ settings, onSaved, data, onRulesSaved, onDataPatch }) {
   const [form, setForm] = useState(settings);
@@ -198,7 +199,7 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
           </div>
 
           <label>Water minimum (L/day)</label>
-          <input type="number" step="0.5" inputMode="decimal" value={tg.waterMin} onChange={setT('waterMin')} />
+          <input type="text" inputMode="decimal" value={tg.waterMin} onChange={setT('waterMin')} />
 
           <label>Primary goal</label>
           <input value={tg.primary} onChange={setT('primary')} placeholder="e.g. Lose body fat while maintaining muscle" />
@@ -206,11 +207,11 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
           <div className="num-grid">
             <div>
               <label>Target weight min (kg)</label>
-              <input type="number" step="0.5" inputMode="decimal" value={tg.weightMin} onChange={setT('weightMin')} />
+              <input type="text" inputMode="decimal" value={tg.weightMin} onChange={setT('weightMin')} />
             </div>
             <div>
               <label>Target weight max (kg)</label>
-              <input type="number" step="0.5" inputMode="decimal" value={tg.weightMax} onChange={setT('weightMax')} />
+              <input type="text" inputMode="decimal" value={tg.weightMax} onChange={setT('weightMax')} />
             </div>
           </div>
 
