@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { appendToLog } from '../lib/github.js';
+import { appendToLog, updateJson } from '../lib/github.js';
 import { todayStr, aggregateWeighIns, parseDecimal } from '../lib/nutrition.js';
 import { WeightChart, BodyFatChart, WaistChart, hasBodyFat, hasWaist, RangeToggle } from './charts.jsx';
 
@@ -31,6 +31,36 @@ export default function WeightTracker({ settings, data, onLogged }) {
   }
 
   const recent = [...data.weightLog].slice(-8).reverse();
+
+  // Old entries have no id, so remove by content: the last entry matching
+  // every field of the tapped row (safe — the app writes one entry per
+  // weigh-in, and matching all metrics makes collisions near-impossible)
+  async function removeEntry(entry) {
+    const parts = [
+      entry.weight_kg != null ? `${entry.weight_kg} kg` : null,
+      entry.body_fat_pct != null ? `${entry.body_fat_pct}%` : null,
+      entry.waist_cm != null ? `${entry.waist_cm} cm` : null,
+    ].filter(Boolean).join(', ');
+    if (!window.confirm(`Remove the ${entry.date} entry (${parts})? You can re-add it afterwards.`)) return;
+    setBusy(true); setError('');
+    try {
+      const same = (a, b) =>
+        a.date === b.date && a.weight_kg === b.weight_kg &&
+        a.body_fat_pct === b.body_fat_pct && a.waist_cm === b.waist_cm;
+      const log = await updateJson(settings, 'data/weight_log.json', (cur) => {
+        const list = Array.isArray(cur) ? [...cur] : [];
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (same(list[i], entry)) { list.splice(i, 1); break; }
+        }
+        return list;
+      }, `Remove weigh-in: ${entry.date}`);
+      onLogged(log);
+    } catch (e) {
+      setError(String(e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <>
@@ -81,8 +111,11 @@ export default function WeightTracker({ settings, data, onLogged }) {
                 e.waist_cm != null ? `${e.waist_cm} cm` : null,
               ].filter(Boolean).join(' · ')}
             </div>
+            <button className="entry-x" aria-label={`Remove ${e.date} entry`} disabled={busy}
+              onClick={() => removeEntry(e)}>✕</button>
           </div>
         ))}
+        {error && recent.length > 0 && <p className="error">{error}</p>}
       </div>
     </>
   );
