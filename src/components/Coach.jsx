@@ -31,7 +31,10 @@ export default function Coach({ settings, data }) {
   async function send() {
     const question = input.trim();
     if (!question) return;
-    setMessages((m) => [...m, { role: 'user', text: question }]);
+    // Build the history locally so the API call includes this question —
+    // the whole conversation is resent each time (the API is stateless)
+    const history = [...messages, { role: 'user', text: question }];
+    setMessages(history);
     setInput(''); setBusy(true); setError('');
     try {
       const today = todayStr();
@@ -44,7 +47,7 @@ export default function Coach({ settings, data }) {
         foods: data.foods,
         coachRules: data.coachRules,
       };
-      const answer = await askCoach(settings, ctx, question);
+      const answer = await askCoach(settings, ctx, history);
       setMessages((m) => [...m, { role: 'assistant', text: answer }]);
     } catch (e) {
       setError(String(e.message || e));
@@ -56,7 +59,14 @@ export default function Coach({ settings, data }) {
   return (
     <>
       <div className="card">
-        <h2>Coach</h2>
+        <div className="card-head">
+          <h2>Coach</h2>
+          {messages.length > 0 && (
+            <button className="ghost" disabled={busy} onClick={() => { setMessages([]); setError(''); }}>
+              New chat
+            </button>
+          )}
+        </div>
         <div className="chat">
           {messages.length === 0 && (
             <p className="hint">

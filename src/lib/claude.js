@@ -204,7 +204,11 @@ Rules:
   return food;
 }
 
-export async function askCoach(settings, ctx, question) {
+// history: the chat so far as [{role: 'user'|'assistant', text}] ending with
+// the new question — the API is stateless, so follow-ups only have context if
+// we resend the conversation. Bounded to the last 20 turns to keep token cost
+// flat in long chats.
+export async function askCoach(settings, ctx, history) {
   const { targets, goals, todayTotals, recentMeals, recentWeights, foods, coachRules } = ctx;
   const persona =
     coachRules?.persona ||
@@ -227,7 +231,7 @@ Always report calories, protein and fibre when suggesting meals. Prefer foods fr
     model: settings.coachModel,
     max_tokens: 1500,
     system,
-    messages: [{ role: 'user', content: question }],
+    messages: history.slice(-20).map((m) => ({ role: m.role, content: m.text })),
   });
   return res.content
     .filter((b) => b.type === 'text')
