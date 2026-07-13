@@ -209,7 +209,10 @@ Rules:
 // we resend the conversation. Bounded to the last 20 turns to keep token cost
 // flat in long chats.
 export async function askCoach(settings, ctx, history) {
-  const { targets, goals, todayTotals, recentMeals, recentWeights, foods, coachRules } = ctx;
+  const { targets, goals, todayTotals, recentMeals, recentWeights, foods, coachRules, memory } = ctx;
+  const memoryBlock = memory?.length
+    ? `\nLONG-TERM MEMORY (durable facts you saved from earlier conversations — use them, don't re-ask):\n${memory.map((m) => `- ${m.text}`).join('\n')}\n`
+    : '';
   const persona =
     coachRules?.persona ||
     'You are a supportive, practical nutrition coach. Be concise and concrete — give actual food suggestions with amounts, not generic advice.';
@@ -221,7 +224,7 @@ GOALS: ${JSON.stringify(goals)}
 TODAY SO FAR: ${JSON.stringify(todayTotals)}
 RECENT MEALS: ${JSON.stringify(recentMeals)}
 RECENT WEIGHT: ${JSON.stringify(recentWeights)}
-
+${memoryBlock}
 AVAILABLE FOODS (the user's database, per standard serving):
 ${foodsContext(foods)}
 
@@ -237,4 +240,84 @@ Always report calories, protein and fibre when suggesting meals. Prefer foods fr
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
     .join('\n');
+}
+
+// ---- Long-term coach memory ------------------------------------------------
+// After each coach exchange a cheap model decides whether data/memory.json
+// needs changing. It returns edit operations (usually none), which the app
+// applies and commits — so the coach accumulates durable knowledge the way
+// Claude's own memory works, and the user can inspect/edit it in Setup.
+
+const MEMORY_OPS_SCHEMA = {
+  type: 'object',
+  properties: {
+    ops: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['add', 'replace', 'remove'] },
+          id: { type: ['string', 'null'] },
+          text: { type: ['string', 'null'] },
+        },
+        required: ['action', 'id', 'text'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['ops'],
+  additionalProperties: false,
+};
+
+export async function maintainMemory(settings, memories, question, answer) {
+  const current = memories.length
+    ? memories.map((m) => `${m.id} | ${m.text}`).join('\n')
+    : '(empty)';
+  const system = `You maintain the long-term memory file of an AI nutrition coach. After each exchange you decide what, if anything, should be remembered permanently.
+
+Worth remembering (durable facts, still useful weeks from now):
+- Food preferences, dislikes, allergies, intolerances
+- Routines and constraints: work schedule, training days, family meals, travel, budget, cooking skill/equipment
+- Health facts the user mentions: injuries, conditions, medication
+- Decisions or strategies agreed with the coach ("cap snacks at 200 kcal", "step calories up gradually after the cut")
+
+NOT memory (transient, or the app already tracks it):
+- Individual meals, daily totals, current weight, targets, goals — the app injects those live
+- One-off questions with no lasting signal
+
+Rules:
+- One short sentence per memory.
+- Use "replace" (with the entry's id) when new information refines or updates an existing memory; "remove" when the exchange contradicts one. Never store duplicates.
+- Keep the file under 30 entries; when near the cap, remove the least useful before adding.
+- Most exchanges change nothing: then return an empty ops list. Be picky.`;
+
+  const user = `CURRENT MEMORY:\n${current}\n\nLATEST EXCHANGE:\nUser: ${question}\nCoach: ${answer}`;
+
+  const res = await client(settings).messages.create({
+    model: settings.logModel, // cheap model — this runs after every exchange
+    max_tokens: 700,
+    system,
+    messages: [{ role: 'user', content: user }],
+    output_config: { format: { type: 'json_schema', schema: MEMORY_OPS_SCHEMA } },
+  });
+  const textBlock = res.content.find((b) => b.type === 'text');
+  if (!textBlock) return [];
+  return JSON.parse(textBlock.text).ops || [];
+}
+
+export function applyMemoryOps(memories, ops) {
+  const today = new Date().toISOString().slice(0, 10);
+  let next = [...memories];
+  let maxN = next.reduce((m, e) => Math.max(m, parseInt(String(e.id).slice(1), 10) || 0), 0);
+  for (const op of ops) {
+    if (op.action === 'add' && op.text) {
+      next.push({ id: `m${++maxN}`, text: op.text, updated: today });
+    } else if (op.action === 'replace' && op.id && op.text) {
+      next = next.map((e) => (e.id === op.id ? { ...e, text: op.text, updated: today } : e));
+    } else if (op.action === 'remove' && op.id) {
+      next = next.filter((e) => e.id !== op.id);
+    }
+  }
+  // Hard backstop over the model's soft 30-entry cap: oldest entries drop first
+  return next.slice(-40);
 }

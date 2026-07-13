@@ -87,6 +87,12 @@ export async function saveCoachRules(settings, rules) {
   await putJson(settings, 'data/coach_rules.json', rules, sha, 'Update coach rules');
 }
 
+// Overwrite the coach's long-term memory, re-fetching the latest sha first.
+export async function saveMemory(settings, memories) {
+  const { sha } = await getJson(settings, 'data/memory.json');
+  await putJson(settings, 'data/memory.json', { memories }, sha, 'Update coach memory');
+}
+
 // Update any JSON data file through a merge function applied to its freshest
 // version, so fields the app doesn't edit are preserved.
 export async function updateJson(settings, filePath, updater, message) {
@@ -97,13 +103,14 @@ export async function updateJson(settings, filePath, updater, message) {
 }
 
 export async function loadAll(settings) {
-  const [foods, targets, goals, mealLog, weightLog, coachRules] = await Promise.all([
+  const [foods, targets, goals, mealLog, weightLog, coachRules, memory] = await Promise.all([
     getJson(settings, 'data/foods.json'),
     getJson(settings, 'data/targets.json'),
     getJson(settings, 'data/goals.json'),
     getJson(settings, 'data/meal_log.json'),
     getJson(settings, 'data/weight_log.json'),
     getJson(settings, 'data/coach_rules.json'),
+    getJson(settings, 'data/memory.json'),
   ]);
   return {
     foods: foods.data || [],
@@ -112,5 +119,7 @@ export async function loadAll(settings) {
     mealLog: mealLog.data || [],
     weightLog: weightLog.data || [],
     coachRules: coachRules.data || null,
+    // Missing file just means the coach hasn't remembered anything yet
+    memory: memory.data?.memories || [],
   };
 }

@@ -52,6 +52,7 @@ data history is versioned, auditable, and recoverable.
    | `profile.json` | Who you are + activity routine (context for the AI coach). |
    | `settings.json` | Logging/data rules. |
    | `coach_rules.json` | **Your AI's rulebook** — persona, priorities, logging and coaching rules injected into every AI call. Editable inside the app (Setup tab → Coach rules). |
+   | `memory.json` | **The coach's long-term memory** — durable facts it learns from your chats (preferences, routines, decisions) and reads back on every question. Maintained automatically after each exchange; view/edit in the app (Setup tab → Coach memory). Start it as `{"memories": []}`. |
    | `meal_templates.json` | Reusable meal structures (optional). |
    | `recipes.json` | Recipes as ingredient lists referencing food ids (optional). |
    | `meal_log.json` | Your meal log — start it as `[]`; the sample shows the entry shape the app writes. |

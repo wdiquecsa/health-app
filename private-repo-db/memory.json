@@ -1,0 +1,14 @@
+{
+  "memories": [
+    {
+      "id": "m1",
+      "text": "Prefers savoury breakfasts over sweet ones.",
+      "updated": "2026-07-01"
+    },
+    {
+      "id": "m2",
+      "text": "Trains (weights) on Tuesday and Thursday evenings; extra hungry those nights.",
+      "updated": "2026-07-05"
+    }
+  ]
+}

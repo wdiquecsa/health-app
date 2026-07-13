@@ -121,7 +121,10 @@ export default function App() {
         <WeightTracker settings={settings} data={data}
           onLogged={(weightLog) => setData({ ...data, weightLog })} />
       )}
-      {ready && tab === 'coach' && <Coach settings={settings} data={data} />}
+      {ready && tab === 'coach' && (
+        <Coach settings={settings} data={data}
+          onMemorySaved={(memory) => setData((d) => ({ ...d, memory }))} />
+      )}
       {ready && tab === 'foods' && (
         <Foods settings={settings} data={data}
           onChanged={(foods) => setData({ ...data, foods })} />

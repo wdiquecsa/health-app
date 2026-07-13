@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { saveSettings } from '../lib/settings.js';
-import { saveCoachRules, updateJson } from '../lib/github.js';
+import { saveCoachRules, saveMemory, updateJson } from '../lib/github.js';
 import { parseDecimal } from '../lib/nutrition.js';
 
 // Textarea that keeps its normal height as a minimum and grows with the
@@ -43,6 +43,11 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
   const [tgBusy, setTgBusy] = useState(false);
   const [tgSaved, setTgSaved] = useState(false);
   const [tgError, setTgError] = useState('');
+
+  const [mem, setMem] = useState(null);
+  const [memBusy, setMemBusy] = useState(false);
+  const [memSaved, setMemSaved] = useState(false);
+  const [memError, setMemError] = useState('');
 
   useEffect(() => {
     if (!data) return;
@@ -110,6 +115,31 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
       coaching_rules: toText(src.coaching_rules),
     });
   }, [data?.coachRules]);
+
+  useEffect(() => {
+    setMem((data?.memory || []).map((m) => m.text).join('\n'));
+  }, [data?.memory]);
+
+  async function saveMem() {
+    setMemBusy(true); setMemError('');
+    try {
+      const existing = data?.memory || [];
+      const today = new Date().toISOString().slice(0, 10);
+      let maxN = existing.reduce((m, e) => Math.max(m, parseInt(String(e.id).slice(1), 10) || 0), 0);
+      // Keep ids (and dates) of lines that already exist; new lines get new ids
+      const next = toList(mem).map((text) => {
+        const found = existing.find((e) => e.text === text);
+        return found || { id: `m${++maxN}`, text, updated: today };
+      });
+      await saveMemory(settings, next);
+      onDataPatch({ memory: next });
+      setMemSaved(true);
+    } catch (e) {
+      setMemError(String(e.message || e));
+    } finally {
+      setMemBusy(false);
+    }
+  }
 
   const set = (k) => (e) => { setForm({ ...form, [k]: e.target.value }); setSaved(false); };
   const setRule = (k) => (e) => { setRules({ ...rules, [k]: e.target.value }); setRulesSaved(false); };
@@ -252,6 +282,24 @@ export default function Settings({ settings, onSaved, data, onRulesSaved, onData
           </button>
           {rulesSaved && <p className="hint delta-good">Coach rules saved to your data repo.</p>}
           {rulesError && <p className="error">{rulesError}</p>}
+        </div>
+      )}
+
+      {data && mem != null && (
+        <div className="card">
+          <h2>Coach memory</h2>
+          <p className="hint" style={{ marginTop: 0 }}>
+            Durable facts the coach has learned from your conversations (preferences,
+            routines, decisions). It updates this itself after chats and reads it on
+            every question. Saved to <code>data/memory.json</code>. One memory per
+            line; delete a line to make it forget.
+          </p>
+          <AutoTextarea value={mem} onChange={(e) => { setMem(e.target.value); setMemSaved(false); }} />
+          <button className="primary" disabled={memBusy} onClick={saveMem}>
+            {memBusy ? 'Saving…' : 'Save memory'}
+          </button>
+          {memSaved && <p className="hint delta-good">Memory saved to your data repo.</p>}
+          {memError && <p className="error">{memError}</p>}
         </div>
       )}
     </>

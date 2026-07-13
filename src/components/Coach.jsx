@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { askCoach } from '../lib/claude.js';
+import { askCoach, maintainMemory, applyMemoryOps } from '../lib/claude.js';
+import { saveMemory } from '../lib/github.js';
 import { dayTotals, todayStr } from '../lib/nutrition.js';
 
 // Tapping one of these fills the question box (it doesn't send), so the
@@ -22,11 +23,29 @@ const COMMON_QUESTIONS = [
   'What should I meal-prep this weekend for an easy week?',
 ];
 
-export default function Coach({ settings, data }) {
+export default function Coach({ settings, data, onMemorySaved }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [memNote, setMemNote] = useState(false);
+
+  // After each exchange, a cheap background call decides whether the coach's
+  // long-term memory (data/memory.json) should change. Memory upkeep must
+  // never break or slow the chat, so failures are swallowed.
+  function upkeepMemory(question, answer, memory) {
+    maintainMemory(settings, memory, question, answer)
+      .then((ops) => {
+        if (!ops.length) return;
+        const next = applyMemoryOps(memory, ops);
+        return saveMemory(settings, next).then(() => {
+          onMemorySaved(next);
+          setMemNote(true);
+          setTimeout(() => setMemNote(false), 4000);
+        });
+      })
+      .catch(() => {});
+  }
 
   async function send() {
     const question = input.trim();
@@ -46,9 +65,11 @@ export default function Coach({ settings, data }) {
         recentWeights: data.weightLog.slice(-10),
         foods: data.foods,
         coachRules: data.coachRules,
+        memory: data.memory,
       };
       const answer = await askCoach(settings, ctx, history);
       setMessages((m) => [...m, { role: 'assistant', text: answer }]);
+      upkeepMemory(question, answer, data.memory || []);
     } catch (e) {
       setError(String(e.message || e));
     } finally {
@@ -81,6 +102,7 @@ export default function Coach({ settings, data }) {
         <label>Your question</label>
         <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="What should I eat tonight with what I have left?" />
         <button className="primary" disabled={busy || !input.trim()} onClick={send}>Ask</button>
+        {memNote && <p className="hint">🧠 Memory updated (view or edit it in Setup).</p>}
         {error && <p className="error">{error}</p>}
       </div>
 
