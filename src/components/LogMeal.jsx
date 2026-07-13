@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { parseMeal, parsePlateMeal } from '../lib/claude.js';
-import { appendToLog } from '../lib/github.js';
+import { appendToLog, updateJson } from '../lib/github.js';
 import { fileToJpegBase64 } from '../lib/image.js';
-import { entryTotals, todayStr, round1, parseDecimal } from '../lib/nutrition.js';
+import { entryTotals, todayStr, round1, parseDecimal, dayWaterMl } from '../lib/nutrition.js';
 
 // Edit-state items keep every editable field as a STRING so typing works
 // naturally (clearing a field, "0.5", "12." are all valid intermediate
@@ -54,14 +54,32 @@ function guessMealByTime() {
   return 'snack';
 }
 
-export default function LogMeal({ settings, data, onLogged }) {
+// Recent unique meals (by their set of item names) for one-tap re-logging —
+// the "same as yesterday" path for meals eaten on rotation.
+function recentUniqueMeals(mealLog, max = 4) {
+  const seen = new Set();
+  const out = [];
+  for (let i = mealLog.length - 1; i >= 0 && out.length < max; i--) {
+    const e = mealLog[i];
+    if (!e.items?.length) continue;
+    const sig = e.items.map((it) => it.name).sort().join('|');
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    out.push(e);
+  }
+  return out;
+}
+
+export default function LogMeal({ settings, data, onLogged, onWaterLogged }) {
   const [text, setText] = useState('');
   const [draft, setDraft] = useState(null); // { meal, items: editItems[], usedAi }
-  const [manualFoodId, setManualFoodId] = useState('');
+  const [manualPick, setManualPick] = useState(''); // 'f:<food id>' | 'r:<recipe id>'
   const [busy, setBusy] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [error, setError] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
+  const [waterBusy, setWaterBusy] = useState(false);
+  const [waterError, setWaterError] = useState('');
   const photoRef = useRef(null);
 
   async function handlePlatePhoto(e) {
@@ -94,26 +112,81 @@ export default function LogMeal({ settings, data, onLogged }) {
     }
   }
 
-  function handleManualAdd() {
-    const food = data.foods.find((f) => f.id === manualFoodId);
-    if (!food) return;
-    setSavedMsg('');
-    const item = toEditItem({
+  const foodToItem = (food, servings = 1) =>
+    toEditItem({
       food_id: food.id,
       name: food.name,
-      quantity: food.standard_serving,
-      servings: 1,
-      kcal: food.kcal,
-      protein_g: food.protein_g,
-      fibre_g: food.fibre_g,
+      quantity: servings === 1 ? food.standard_serving : `${servings} × ${food.standard_serving}`,
+      servings,
+      kcal: food.kcal != null ? food.kcal * servings : null,
+      protein_g: food.protein_g != null ? food.protein_g * servings : null,
+      fibre_g: food.fibre_g != null ? food.fibre_g * servings : null,
       is_estimate: false,
     });
+
+  const appendToDraft = (items, meal) =>
     setDraft((d) =>
-      d
-        ? { ...d, items: [...d.items, item] }
-        : { meal: guessMealByTime(), items: [item], usedAi: false },
+      d ? { ...d, items: [...d.items, ...items] } : { meal: meal || guessMealByTime(), items, usedAi: false },
     );
-    setManualFoodId('');
+
+  function handleManualAdd() {
+    setSavedMsg('');
+    const [kind, id] = [manualPick.slice(0, 1), manualPick.slice(2)];
+    if (kind === 'f') {
+      const food = data.foods.find((f) => f.id === id);
+      if (food) appendToDraft([foodToItem(food)]);
+    } else if (kind === 'r') {
+      const recipe = (data.recipes || []).find((r) => r.id === id);
+      if (recipe) {
+        const items = (recipe.ingredients || [])
+          .map((ing) => {
+            const food = data.foods.find((f) => f.id === ing.food_id);
+            return food ? foodToItem(food, ing.servings || 1) : null;
+          })
+          .filter(Boolean);
+        if (items.length) appendToDraft(items, recipe.meal);
+      }
+    }
+    setManualPick('');
+  }
+
+  // Re-log a past entry: copy its items (values were snapshotted at log time)
+  function handleRepeat(entry) {
+    setSavedMsg('');
+    appendToDraft(entry.items.map(toEditItem), guessMealByTime());
+  }
+
+  async function addWater(ml) {
+    setWaterBusy(true); setWaterError('');
+    try {
+      const now = new Date();
+      const entry = { id: `${now.getTime()}`, date: todayStr(now), time: now.toTimeString().slice(0, 5), ml };
+      const log = await appendToLog(settings, 'data/water_log.json', entry, `Log water: ${ml} ml`);
+      onWaterLogged(log);
+    } catch (e) {
+      setWaterError(String(e.message || e));
+    } finally {
+      setWaterBusy(false);
+    }
+  }
+
+  async function undoWater() {
+    setWaterBusy(true); setWaterError('');
+    try {
+      const today = todayStr();
+      const log = await updateJson(settings, 'data/water_log.json', (cur) => {
+        const list = Array.isArray(cur) ? [...cur] : [];
+        for (let i = list.length - 1; i >= 0; i--) {
+          if (list[i].date === today) { list.splice(i, 1); break; }
+        }
+        return list;
+      }, 'Undo last water entry');
+      onWaterLogged(log);
+    } catch (e) {
+      setWaterError(String(e.message || e));
+    } finally {
+      setWaterBusy(false);
+    }
   }
 
   function updateItem(idx, patch) {
@@ -201,8 +274,11 @@ export default function LogMeal({ settings, data, onLogged }) {
   }
 
   const totals = draft ? draftTotals(draft.items) : null;
+  const waterToday = dayWaterMl(data.waterLog, todayStr());
+  const waterMin = data.targets?.daily?.water_l?.min ?? null;
 
   return (
+    <>
     <div className="card">
       <h2>Log a meal</h2>
 
@@ -233,16 +309,43 @@ export default function LogMeal({ settings, data, onLogged }) {
         {busy && !draft ? 'Analysing…' : 'AI Analysis'}
       </button>
 
-      <label style={{ marginTop: 20 }}>Or add from your food database</label>
+      <label style={{ marginTop: 20 }}>Or add a recipe or food</label>
       <div className="manual-add">
-        <select value={manualFoodId} onChange={(e) => setManualFoodId(e.target.value)}>
-          <option value="">Choose a food…</option>
-          {foodsSorted.map((f) => (
-            <option key={f.id} value={f.id}>{f.name} ({f.standard_serving})</option>
-          ))}
+        <select value={manualPick} onChange={(e) => setManualPick(e.target.value)}>
+          <option value="">Choose…</option>
+          {(data.recipes || []).length > 0 && (
+            <optgroup label="Recipes">
+              {[...data.recipes]
+                .filter((r) => (r.ingredients || []).length > 0)
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map((r) => (
+                  <option key={r.id} value={`r:${r.id}`}>{r.name}</option>
+                ))}
+            </optgroup>
+          )}
+          <optgroup label="Foods">
+            {foodsSorted.map((f) => (
+              <option key={f.id} value={`f:${f.id}`}>{f.name} ({f.standard_serving})</option>
+            ))}
+          </optgroup>
         </select>
-        <button className="ghost" disabled={!manualFoodId || busy} onClick={handleManualAdd}>Add</button>
+        <button className="ghost" disabled={!manualPick || busy} onClick={handleManualAdd}>Add</button>
       </div>
+
+      {!draft && recentUniqueMeals(data.mealLog).length > 0 && (
+        <>
+          <label style={{ marginTop: 16 }}>Or repeat a recent meal</label>
+          {recentUniqueMeals(data.mealLog).map((e) => (
+            <button className="repeat-row" key={e.id} disabled={busy} onClick={() => handleRepeat(e)}>
+              <span>
+                {(e.items || []).map((i) => i.name).join(', ')}
+                <span className="meta"> · {e.meal} on {e.date}</span>
+              </span>
+              <span className="macros">{Math.round(e.totals?.kcal || 0)} kcal</span>
+            </button>
+          ))}
+        </>
+      )}
 
       {draft && (
         <>
@@ -313,5 +416,22 @@ export default function LogMeal({ settings, data, onLogged }) {
       {savedMsg && <p className="hint delta-good">{savedMsg}</p>}
       {error && <p className="error">{error}</p>}
     </div>
+
+    <div className="card">
+      <h2>Water</h2>
+      <p className="hint" style={{ marginTop: 0 }}>
+        Today: <strong>{(waterToday / 1000).toFixed(2).replace(/\.?0+$/, '')} L</strong>
+        {waterMin != null && <> of {waterMin} L</>}
+        {waterMin != null && waterToday >= waterMin * 1000 && ' ✅'}
+      </p>
+      <div className="water-row">
+        <button className="ghost" disabled={waterBusy} onClick={() => addWater(250)}>+ 250 ml</button>
+        <button className="ghost" disabled={waterBusy} onClick={() => addWater(500)}>+ 500 ml</button>
+        <button className="ghost" disabled={waterBusy || dayWaterMl(data.waterLog, todayStr()) === 0}
+          onClick={undoWater}>Undo</button>
+      </div>
+      {waterError && <p className="error">{waterError}</p>}
+    </div>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { round1, parseDecimal } from '../lib/nutrition.js';
-import { mutateFoods } from '../lib/github.js';
+import { round1, parseDecimal, recipeTotals } from '../lib/nutrition.js';
+import { mutateFoods, mutateRecipes } from '../lib/github.js';
 import { readNutritionLabel } from '../lib/claude.js';
 import { fileToJpegBase64 } from '../lib/image.js';
 
@@ -92,7 +92,73 @@ function FoodForm({ initial, busy, onSave, onCancel }) {
   );
 }
 
-export default function Foods({ settings, data, onChanged }) {
+// Recipes store ingredient refs + servings only; totals are computed live
+// from foods.json (single source of truth for nutrition).
+function RecipeForm({ initial, foods, busy, onSave, onCancel }) {
+  const [name, setName] = useState(initial?.name || '');
+  const [meal, setMeal] = useState(initial?.meal || 'dinner');
+  const [rows, setRows] = useState(() =>
+    (initial?.ingredients || []).map((ing) => ({ food_id: ing.food_id, servingsStr: String(ing.servings ?? 1) })),
+  );
+  const foodsSorted = [...foods].sort((a, b) => a.name.localeCompare(b.name));
+
+  const setRow = (i, patch) => setRows(rows.map((r, x) => (x === i ? { ...r, ...patch } : r)));
+  const ingredients = rows
+    .filter((r) => r.food_id)
+    .map((r) => ({ food_id: r.food_id, servings: parseDecimal(r.servingsStr) ?? 1 }));
+  const totals = recipeTotals({ ingredients }, foods);
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <label>Recipe name</label>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Drumsticks, lentils & veg" />
+      <label>Usual meal</label>
+      <select value={meal} onChange={(e) => setMeal(e.target.value)}>
+        <option value="breakfast">breakfast</option>
+        <option value="lunch">lunch</option>
+        <option value="dinner">dinner</option>
+        <option value="snack">snack</option>
+      </select>
+
+      <label>Ingredients (servings of each food's standard serving)</label>
+      {rows.map((r, i) => (
+        <div className="ing-row" key={i}>
+          <select value={r.food_id || ''} onChange={(e) => setRow(i, { food_id: e.target.value })}>
+            <option value="">Choose a food…</option>
+            {foodsSorted.map((f) => (
+              <option key={f.id} value={f.id}>{f.name} ({f.standard_serving})</option>
+            ))}
+          </select>
+          <input type="text" inputMode="decimal" value={r.servingsStr} aria-label="Servings"
+            onChange={(e) => setRow(i, { servingsStr: e.target.value })} />
+          <button className="entry-x" aria-label="Remove ingredient"
+            onClick={() => setRows(rows.filter((_, x) => x !== i))}>✕</button>
+        </div>
+      ))}
+      <button className="ghost" style={{ marginTop: 8 }}
+        onClick={() => setRows([...rows, { food_id: '', servingsStr: '1' }])}>
+        + Add ingredient
+      </button>
+
+      {ingredients.length > 0 && (
+        <p className="hint">
+          Per portion: <strong>{Math.round(totals.kcal)} kcal, {round1(totals.protein_g)}g protein, {round1(totals.fibre_g)}g fibre</strong>
+          {totals.hasUnknown && ' (some ingredient values unknown — not counted)'}
+        </p>
+      )}
+
+      <button className="primary" disabled={busy || !name.trim() || ingredients.length === 0}
+        onClick={() => onSave({ name: name.trim(), meal, ingredients })}>
+        {busy ? 'Saving…' : 'Save recipe'}
+      </button>
+      <button className="ghost" style={{ width: '100%', marginTop: 8 }} onClick={onCancel} disabled={busy}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+export default function Foods({ settings, data, onChanged, onRecipesChanged }) {
   const [q, setQ] = useState('');
   const [editing, setEditing] = useState(null); // 'new' | food id
   const [busy, setBusy] = useState(false);
@@ -101,6 +167,35 @@ export default function Foods({ settings, data, onChanged }) {
   const [scanBusy, setScanBusy] = useState(false);
   const [scanned, setScanned] = useState(null);
   const [scanKey, setScanKey] = useState(0);
+  const [editingRecipe, setEditingRecipe] = useState(null); // 'new' | recipe id
+  const [recipeError, setRecipeError] = useState('');
+
+  async function commitRecipes(fn, message) {
+    setBusy(true); setRecipeError('');
+    try {
+      const recipes = await mutateRecipes(settings, fn, message);
+      onRecipesChanged(recipes);
+      setEditingRecipe(null);
+    } catch (e) {
+      setRecipeError(String(e.message || e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const handleRecipeCreate = (r) =>
+    commitRecipes((recipes) => [...recipes, { id: uniqueId(r.name, recipes), ...r }], `Add recipe: ${r.name}`);
+
+  const handleRecipeUpdate = (id) => (r) =>
+    commitRecipes(
+      (recipes) => recipes.map((x) => (x.id === id ? { ...x, ...r } : x)),
+      `Update recipe: ${r.name}`,
+    );
+
+  function handleRecipeDelete(r) {
+    if (!window.confirm(`Delete recipe "${r.name}"?\n\nPast meal logs keep their values.`)) return;
+    commitRecipes((recipes) => recipes.filter((x) => x.id !== r.id), `Remove recipe: ${r.name}`);
+  }
 
   async function commit(fn, message) {
     setBusy(true); setError('');
@@ -151,8 +246,68 @@ export default function Foods({ settings, data, onChanged }) {
       (f.category || '').toLowerCase().includes(q.toLowerCase()),
   );
 
+  const recipes = data.recipes || [];
+
   return (
-    <div className="card">
+    <>
+      <div className="card">
+        <div className="food-head">
+          <h2>Recipes ({recipes.length})</h2>
+          {editingRecipe == null && (
+            <button className="ghost" onClick={() => setEditingRecipe('new')}>+ Add recipe</button>
+          )}
+        </div>
+        <p className="hint" style={{ marginTop: 0 }}>
+          Your regular meals as reusable ingredient lists. Nutrition is always
+          calculated from the food database below, so updating a food updates every
+          recipe. Log one from the Log tab in two taps.
+        </p>
+
+        {editingRecipe === 'new' && (
+          <RecipeForm foods={data.foods} busy={busy} onSave={handleRecipeCreate}
+            onCancel={() => setEditingRecipe(null)} />
+        )}
+        {editingRecipe != null && editingRecipe !== 'new' && (
+          <RecipeForm key={editingRecipe} foods={data.foods} busy={busy}
+            initial={recipes.find((r) => r.id === editingRecipe)}
+            onSave={handleRecipeUpdate(editingRecipe)}
+            onCancel={() => setEditingRecipe(null)} />
+        )}
+
+        {editingRecipe == null &&
+          recipes.map((r) => {
+            const t = recipeTotals(r, data.foods);
+            const names = (r.ingredients || [])
+              .map((ing) => data.foods.find((f) => f.id === ing.food_id)?.name || ing.food_id)
+              .join(', ');
+            return (
+              <div className="food-row" key={r.id}>
+                <div className="name">
+                  {r.name}{' '}
+                  <span style={{ color: 'var(--muted)', fontWeight: 400, fontSize: '0.8rem' }}>{r.meal}</span>
+                </div>
+                <div className="detail">
+                  {(r.ingredients || []).length
+                    ? `${Math.round(t.kcal)} kcal · ${round1(t.protein_g)}g protein · ${round1(t.fibre_g)}g fibre`
+                    : 'No ingredients yet — tap Edit to configure'}
+                  {t.missingFoods.length > 0 && ' · ⚠ has deleted foods'}
+                  {t.hasUnknown && ' · some values unknown'}
+                </div>
+                {names && <div className="detail">{names}</div>}
+                <div className="row-actions">
+                  <button className="ghost" onClick={() => setEditingRecipe(r.id)}>Edit</button>
+                  <button className="ghost danger" onClick={() => handleRecipeDelete(r)} disabled={busy}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        {editingRecipe == null && recipes.length === 0 && (
+          <p className="center">No recipes yet. Add your regular dinners here.</p>
+        )}
+        {recipeError && <p className="error">{recipeError}</p>}
+      </div>
+
+      <div className="card">
       <div className="food-head">
         <h2>Food database ({data.foods.length})</h2>
         {editing == null && (
@@ -227,6 +382,7 @@ export default function Foods({ settings, data, onChanged }) {
         {editing == null && foods.length === 0 && <p className="center">No matches.</p>}
       </div>
       {error && <p className="error">{error}</p>}
-    </div>
+      </div>
+    </>
   );
 }

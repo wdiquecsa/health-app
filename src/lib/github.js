@@ -81,6 +81,14 @@ export async function mutateFoods(settings, fn, message) {
   return foods;
 }
 
+// Same freshest-version mutation pattern for the recipes file.
+export async function mutateRecipes(settings, fn, message) {
+  const { data, sha } = await getJson(settings, 'data/recipes.json');
+  const recipes = fn(Array.isArray(data) ? data : []);
+  await putJson(settings, 'data/recipes.json', recipes, sha, message);
+  return recipes;
+}
+
 // Overwrite the coach rules file, re-fetching the latest sha first.
 export async function saveCoachRules(settings, rules) {
   const { sha } = await getJson(settings, 'data/coach_rules.json');
@@ -103,15 +111,19 @@ export async function updateJson(settings, filePath, updater, message) {
 }
 
 export async function loadAll(settings) {
-  const [foods, targets, goals, mealLog, weightLog, coachRules, memory] = await Promise.all([
-    getJson(settings, 'data/foods.json'),
-    getJson(settings, 'data/targets.json'),
-    getJson(settings, 'data/goals.json'),
-    getJson(settings, 'data/meal_log.json'),
-    getJson(settings, 'data/weight_log.json'),
-    getJson(settings, 'data/coach_rules.json'),
-    getJson(settings, 'data/memory.json'),
-  ]);
+  const [foods, targets, goals, mealLog, weightLog, coachRules, memory, recipes, waterLog, profile] =
+    await Promise.all([
+      getJson(settings, 'data/foods.json'),
+      getJson(settings, 'data/targets.json'),
+      getJson(settings, 'data/goals.json'),
+      getJson(settings, 'data/meal_log.json'),
+      getJson(settings, 'data/weight_log.json'),
+      getJson(settings, 'data/coach_rules.json'),
+      getJson(settings, 'data/memory.json'),
+      getJson(settings, 'data/recipes.json'),
+      getJson(settings, 'data/water_log.json'),
+      getJson(settings, 'data/profile.json'),
+    ]);
   return {
     foods: foods.data || [],
     targets: targets.data || null,
@@ -121,5 +133,8 @@ export async function loadAll(settings) {
     coachRules: coachRules.data || null,
     // Missing file just means the coach hasn't remembered anything yet
     memory: memory.data?.memories || [],
+    recipes: recipes.data || [],
+    waterLog: waterLog.data || [],
+    profile: profile.data || null,
   };
 }

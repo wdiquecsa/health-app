@@ -5,7 +5,7 @@ import {
 } from './charts.jsx';
 import {
   dayTotals, todayStr, round1, paceStats, aggregateWeighIns,
-  adherenceStats, macroHistory,
+  adherenceStats, macroHistory, dayWaterMl,
 } from '../lib/nutrition.js';
 import { updateJson } from '../lib/github.js';
 
@@ -106,6 +106,10 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
         {t.kcal && <MacroBar label="Calories" value={totals.kcal} unit="kcal" target={t.kcal} />}
         {t.protein_g && <MacroBar label="Protein" value={totals.protein_g} unit="g" target={t.protein_g} />}
         {t.fibre_g && <MacroBar label="Fibre" value={totals.fibre_g} unit="g" target={t.fibre_g} />}
+        {t.water_l?.min != null && (
+          <MacroBar label="Water" value={dayWaterMl(data.waterLog, selectedDate) / 1000} unit="L"
+            target={{ value: t.water_l.min }} overOk />
+        )}
       </div>
 
       <div className="stat-tiles">

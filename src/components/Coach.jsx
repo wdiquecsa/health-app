@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { askCoach, maintainMemory, applyMemoryOps } from '../lib/claude.js';
 import { saveMemory } from '../lib/github.js';
-import { dayTotals, todayStr } from '../lib/nutrition.js';
+import { dayTotals, todayStr, macroHistory } from '../lib/nutrition.js';
 
 // Tapping one of these fills the question box (it doesn't send), so the
 // user can still tweak it before asking.
@@ -10,7 +10,7 @@ const COMMON_QUESTIONS = [
   'How much protein do I still need today, and what’s the easiest way to get it?',
   'Suggest a high-protein snack under 200 kcal.',
   'Plan tomorrow’s meals for me within my targets.',
-  'How am I doing this week overall?',
+  'Summarise my last week: intake vs targets, weight trend, and the one thing to improve next week.',
   'Review today’s meals: what would you have done differently?',
   'What’s a filling breakfast that keeps me full until lunch?',
   'How can I get more fibre in without adding many calories?',
@@ -66,6 +66,8 @@ export default function Coach({ settings, data, onMemorySaved }) {
         foods: data.foods,
         coachRules: data.coachRules,
         memory: data.memory,
+        profile: data.profile,
+        last7Days: macroHistory(data.mealLog, 7),
       };
       const answer = await askCoach(settings, ctx, history);
       setMessages((m) => [...m, { role: 'assistant', text: answer }]);

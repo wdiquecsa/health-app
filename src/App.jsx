@@ -115,7 +115,8 @@ export default function App() {
       )}
       {ready && tab === 'log' && (
         <LogMeal settings={settings} data={data}
-          onLogged={(mealLog) => setData({ ...data, mealLog })} />
+          onLogged={(mealLog) => setData({ ...data, mealLog })}
+          onWaterLogged={(waterLog) => setData((d) => ({ ...d, waterLog }))} />
       )}
       {ready && tab === 'weight' && (
         <WeightTracker settings={settings} data={data}
@@ -127,7 +128,8 @@ export default function App() {
       )}
       {ready && tab === 'foods' && (
         <Foods settings={settings} data={data}
-          onChanged={(foods) => setData({ ...data, foods })} />
+          onChanged={(foods) => setData({ ...data, foods })}
+          onRecipesChanged={(recipes) => setData((d) => ({ ...d, recipes }))} />
       )}
 
       <nav className="tabbar">

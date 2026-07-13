@@ -190,6 +190,38 @@ button.scan-btn {
 .manual-add select { flex: 1; }
 .manual-add button { flex-shrink: 0; }
 
+.ing-row {
+  display: grid;
+  grid-template-columns: 1fr 64px 34px;
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+.ing-row input { text-align: center; padding: 10px 6px; }
+
+.water-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.water-row button.ghost { flex: 1; padding: 12px 8px; }
+
+.repeat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--grid);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.88rem;
+  padding: 10px 2px;
+  cursor: pointer;
+}
+.repeat-row:last-child { border-bottom: none; }
+.repeat-row .meta { color: var(--muted); font-size: 0.78rem; }
+.repeat-row .macros { color: var(--ink-2); font-size: 0.8rem; white-space: nowrap; }
+
 .draft-item { padding: 10px 0; border-bottom: 1px solid var(--grid); }
 .draft-item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .draft-item-head .meta { color: var(--muted); font-size: 0.8rem; }

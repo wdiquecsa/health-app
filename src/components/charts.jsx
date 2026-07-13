@@ -4,14 +4,16 @@ import { round1 } from '../lib/nutrition.js';
 // Progress bar for one macro vs a target value or min–max range.
 // Identity is carried by the label; color only signals state:
 // blue = in progress, green = within range, red = over the ceiling.
-export function MacroBar({ label, value, unit, target }) {
+export function MacroBar({ label, value, unit, target, overOk = false }) {
   const max = target.max ?? target.value;
   const min = target.min ?? null;
   const scale = max * 1.15; // headroom so "over" is visible
   const pct = Math.min(100, (value / scale) * 100);
 
+  // overOk: the target is a floor (e.g. water) — exceeding it is success,
+  // never flagged red
   let cls = 'bar-fill';
-  if (value > max * 1.02) cls += ' over';
+  if (value > max * 1.02 && !overOk) cls += ' over';
   else if (min != null && value >= min) cls += ' met';
   else if (min == null && value >= max * 0.98) cls += ' met';
 

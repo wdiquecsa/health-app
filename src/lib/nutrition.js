@@ -23,6 +23,36 @@ export function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+// A recipe stores only ingredient refs + servings; nutrition is always
+// computed live from foods.json, so fixing a food fixes every recipe.
+// Ingredients whose food no longer exists are listed in `missingFoods`;
+// null macro values count as unknown (never 0) and set `hasUnknown`.
+export function recipeTotals(recipe, foods) {
+  const totals = { kcal: 0, protein_g: 0, fibre_g: 0 };
+  const missingFoods = [];
+  let hasUnknown = false;
+  for (const ing of recipe.ingredients || []) {
+    const food = foods.find((f) => f.id === ing.food_id);
+    if (!food) {
+      missingFoods.push(ing.food_id);
+      continue;
+    }
+    const s = ing.servings || 1;
+    for (const key of ['kcal', 'protein_g', 'fibre_g']) {
+      if (food[key] == null) hasUnknown = true;
+      else totals[key] += food[key] * s;
+    }
+  }
+  return { ...totals, missingFoods, hasUnknown };
+}
+
+// Total water logged on a date, in ml.
+export function dayWaterMl(waterLog, date) {
+  return (waterLog || [])
+    .filter((e) => e.date === date)
+    .reduce((sum, e) => sum + (e.ml || 0), 0);
+}
+
 // iOS decimal keypads produce ',' in comma-decimal locales (NL among them);
 // accept either separator. Returns null for empty/unparseable input — JSON
 // always stores dot-decimal numbers.

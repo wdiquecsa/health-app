@@ -57,6 +57,7 @@ data history is versioned, auditable, and recoverable.
    | `recipes.json` | Recipes as ingredient lists referencing food ids (optional). |
    | `meal_log.json` | Your meal log — start it as `[]`; the sample shows the entry shape the app writes. |
    | `weight_log.json` | Your weigh-ins — start it as `[]` or with a baseline entry. |
+   | `water_log.json` | Water intake log (the Log tab's +250/+500 ml buttons write here) — start it as `[]`. |
 
 3. Edit `foods.json`, `targets.json`, `goals.json` and `profile.json` to be
    about *you*. Conventions: kebab-case `id`s, snake_case nutrient keys with

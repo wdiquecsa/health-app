@@ -209,7 +209,7 @@ Rules:
 // we resend the conversation. Bounded to the last 20 turns to keep token cost
 // flat in long chats.
 export async function askCoach(settings, ctx, history) {
-  const { targets, goals, todayTotals, recentMeals, recentWeights, foods, coachRules, memory } = ctx;
+  const { targets, goals, todayTotals, recentMeals, recentWeights, foods, coachRules, memory, profile, last7Days } = ctx;
   const memoryBlock = memory?.length
     ? `\nLONG-TERM MEMORY (durable facts you saved from earlier conversations — use them, don't re-ask):\n${memory.map((m) => `- ${m.text}`).join('\n')}\n`
     : '';
@@ -218,10 +218,12 @@ export async function askCoach(settings, ctx, history) {
     'You are a supportive, practical nutrition coach. Be concise and concrete — give actual food suggestions with amounts, not generic advice.';
   const system = `${persona}
 
+USER PROFILE: ${JSON.stringify(profile)}
 DAILY TARGETS: ${JSON.stringify(targets)}
 GOALS: ${JSON.stringify(goals)}
 
 TODAY SO FAR: ${JSON.stringify(todayTotals)}
+LAST 7 DAYS (daily kcal/protein/fibre totals; 0s = nothing logged): ${JSON.stringify(last7Days)}
 RECENT MEALS: ${JSON.stringify(recentMeals)}
 RECENT WEIGHT: ${JSON.stringify(recentWeights)}
 ${memoryBlock}
