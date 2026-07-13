@@ -198,7 +198,11 @@ export function hasWaist(entries) {
 
 // Daily bars vs a target (single value line, or a min-max band). Zero-value
 // days (nothing logged) render as empty slots rather than misleading bars.
-export function MacroBarsChart({ data, field, target, unit, ariaLabel }) {
+// Color semantics per metric:
+// - successMin set (floor targets like protein/fibre/water): green at or
+//   above it — including over the band top — blue below, never red.
+// - otherwise (ceiling targets like calories): red when over, blue otherwise.
+export function MacroBarsChart({ data, field, target, unit, ariaLabel, successMin = null }) {
   const [hover, setHover] = useState(null);
   const W = 580, H = 170;
   const pad = { top: 16, right: 44, bottom: 24, left: 8 };
@@ -232,21 +236,25 @@ export function MacroBarsChart({ data, field, target, unit, ariaLabel }) {
         {data.map((d, i) => {
           const v = d[field];
           const x = pad.left + i * slot + (slot - barW) / 2;
-          const over = target?.value != null ? v > target.value * 1.02 : target?.max != null && v > target.max * 1.02;
+          let fill = 'var(--series)';
+          if (successMin != null) {
+            if (v >= successMin) fill = 'var(--good)';
+          } else if (target?.value != null ? v > target.value * 1.02 : target?.max != null && v > target.max * 1.02) {
+            fill = 'var(--critical)';
+          }
           return (
             <g key={d.date} onMouseEnter={() => setHover(d)}>
               {/* invisible full-height hit target so hover is easy */}
               <rect x={pad.left + i * slot} y={pad.top} width={slot} height={H - pad.top - pad.bottom} fill="transparent" />
               {v > 0 && (
-                <rect x={x} y={y(v)} width={barW} height={Math.max(2, H - pad.bottom - y(v))} rx="3"
-                  fill={over ? 'var(--critical)' : 'var(--series)'} />
+                <rect x={x} y={y(v)} width={barW} height={Math.max(2, H - pad.bottom - y(v))} rx="3" fill={fill} />
               )}
             </g>
           );
         })}
         {hover && (
           <text x={W / 2} y={pad.top} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--ink)">
-            {Math.round(hover[field])} {unit} · {hover.date}
+            {round1(hover[field])} {unit} · {hover.date}
           </text>
         )}
         <line x1={pad.left} x2={W - pad.right} y1={H - pad.bottom} y2={H - pad.bottom} stroke="var(--baseline)" strokeWidth="1" />

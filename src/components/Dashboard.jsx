@@ -5,7 +5,7 @@ import {
 } from './charts.jsx';
 import {
   dayTotals, todayStr, round1, paceStats, aggregateWeighIns,
-  adherenceStats, macroHistory, dayWaterMl,
+  adherenceStats, macroHistory, dayWaterMl, waterHistory,
 } from '../lib/nutrition.js';
 import { updateJson } from '../lib/github.js';
 
@@ -104,8 +104,8 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
           <DayNav dayOffset={dayOffset} setDayOffset={setDayOffset} />
         </div>
         {t.kcal && <MacroBar label="Calories" value={totals.kcal} unit="kcal" target={t.kcal} />}
-        {t.protein_g && <MacroBar label="Protein" value={totals.protein_g} unit="g" target={t.protein_g} />}
-        {t.fibre_g && <MacroBar label="Fibre" value={totals.fibre_g} unit="g" target={t.fibre_g} />}
+        {t.protein_g && <MacroBar label="Protein" value={totals.protein_g} unit="g" target={t.protein_g} overOk />}
+        {t.fibre_g && <MacroBar label="Fibre" value={totals.fibre_g} unit="g" target={t.fibre_g} overOk />}
         {t.water_l?.min != null && (
           <MacroBar label="Water" value={dayWaterMl(data.waterLog, selectedDate) / 1000} unit="L"
             target={{ value: t.water_l.min }} overOk />
@@ -177,14 +177,24 @@ export default function Dashboard({ settings, data, onMealLogChanged, onGoToSett
           <>
             <div className="sub-label" style={{ margin: '12px 0 4px' }}>Protein per day (g)</div>
             <MacroBarsChart data={history} field="protein_g" unit="g protein"
-              target={{ min: t.protein_g.min, max: t.protein_g.max }} ariaLabel="Daily protein, last 14 days" />
+              target={{ min: t.protein_g.min, max: t.protein_g.max }} successMin={t.protein_g.min}
+              ariaLabel="Daily protein, last 14 days" />
           </>
         )}
         {t.fibre_g?.min != null && (
           <>
             <div className="sub-label" style={{ margin: '12px 0 4px' }}>Fibre per day (g)</div>
             <MacroBarsChart data={history} field="fibre_g" unit="g fibre"
-              target={{ min: t.fibre_g.min, max: t.fibre_g.max }} ariaLabel="Daily fibre, last 14 days" />
+              target={{ min: t.fibre_g.min, max: t.fibre_g.max }} successMin={t.fibre_g.min}
+              ariaLabel="Daily fibre, last 14 days" />
+          </>
+        )}
+        {t.water_l?.min != null && (
+          <>
+            <div className="sub-label" style={{ margin: '12px 0 4px' }}>Water per day (L)</div>
+            <MacroBarsChart data={waterHistory(data.waterLog, 14)} field="water_l" unit="L"
+              target={{ value: t.water_l.min }} successMin={t.water_l.min}
+              ariaLabel="Daily water, last 14 days" />
           </>
         )}
       </div>

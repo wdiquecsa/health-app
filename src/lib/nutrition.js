@@ -53,6 +53,16 @@ export function dayWaterMl(waterLog, date) {
     .reduce((sum, e) => sum + (e.ml || 0), 0);
 }
 
+// Daily water totals (litres) for the last `days` days, oldest first.
+export function waterHistory(waterLog, days = 14) {
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = todayStr(new Date(Date.now() - i * DAY_MS));
+    out.push({ date, water_l: dayWaterMl(waterLog, date) / 1000 });
+  }
+  return out;
+}
+
 // iOS decimal keypads produce ',' in comma-decimal locales (NL among them);
 // accept either separator. Returns null for empty/unparseable input — JSON
 // always stores dot-decimal numbers.
